@@ -7,9 +7,9 @@ const okc=c=>/^#[0-9a-f]{6}$/i.test(c||'')?c:'';
 const okId=id=>/^[A-Za-z0-9_-]{1,80}$/.test(id||'');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const COLORS=['','#ff5a3c','#f39a1e','#e2c02a','#36a86d','#2a9ec4','#4b6bff','#8f5ae8','#e0508f','#737a84'];
-const TYPES=['note','heading','todo','link','image','video','board','column','swatch'];
-const MINW={note:150,heading:140,todo:190,link:220,image:110,video:200,board:130,column:200,swatch:100};
-const DEFW={note:260,heading:380,todo:280,link:300,image:280,video:380,board:170,column:270,swatch:150};
+const TYPES=['note','heading','todo','link','image','video','audio','board','column','swatch'];
+const MINW={note:150,heading:140,todo:190,link:220,image:110,video:200,audio:220,board:130,column:200,swatch:100};
+const DEFW={note:260,heading:380,todo:280,link:300,image:280,video:380,audio:300,board:170,column:270,swatch:150};
 const ICON={
  note:'<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
  heading:'<path d="M6 5v14M18 5v14M6 12h12"/>',
@@ -19,8 +19,9 @@ const ICON={
  board:'<rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/>',
  column:'<rect x="4" y="4" width="6" height="16" rx="1.6"/><rect x="14" y="4" width="6" height="10" rx="1.6"/>',
  swatch:'<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z"/>',
- line:'<path d="M5 19L19 5M11 5h8v8"/>'};
-const TOOLS=[['note','Note'],['heading','Heading'],['todo','To-do'],['link','Link'],['image','Media'],['board','Board'],['column','Column'],['swatch','Colour'],['line','Line']];
+ line:'<path d="M5 19L19 5M11 5h8v8"/>',
+ voice:'<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/>'};
+const TOOLS=[['note','Note'],['heading','Heading'],['todo','To-do'],['link','Link'],['image','Media'],['voice','Voice'],['board','Board'],['column','Column'],['swatch','Colour'],['line','Line']];
 const canvas=$('#canvas'),world=$('#world'),svg=$('#links'),ctx=$('#ctx');
 const S={boards:{},images:{},cur:'home',view:{},sel:new Set(),selLink:null,linkPt:null,connect:null,undo:[],redo:[],editSnapped:false,needRender:false};
 /* P.remote: what the store holds (key -> doc). P.sent: what we last saw/sent per key. P.pend: keys with writes in flight. */
@@ -76,9 +77,9 @@ function requestRender(){if(drag||tdrag||pinch||isEditing()){S.needRender=true;r
 Store.onChange(changes=>{for(const[k,v]of changes){if(v===null)P.remote.delete(k);else P.remote.set(k,v)}mergeSoon()});
 /* media: files are kept on this device; the page shows them through temporary local links */
 function mediaTag(c){const id=c.media;if(!id)return '<div class="ph">Missing file</div>';const u=Store.cachedUrl(id);
- if(u===undefined){Store.mediaUrl(id).then(()=>{world.querySelectorAll(`.im[data-media="${CSS.escape(id)}"]`).forEach(x=>{const card=find(x.closest('.card').dataset.id);if(card)x.innerHTML=mediaTag(card)});linksSoon()});return `<div class="ph">Loading ${c.type=='video'?'video':'picture'}…</div>`}
- if(!u)return `<div class="ph">${c.type=='video'?'Video':'Picture'} not found on this device</div>`;
- return c.type=='video'?`<video src="${esc(u)}" controls playsinline preload="metadata"></video>`:`<img src="${esc(u)}" alt="" draggable="false">`}
+ if(u===undefined){Store.mediaUrl(id).then(()=>{world.querySelectorAll(`.im[data-media="${CSS.escape(id)}"]`).forEach(x=>{const card=find(x.closest('.card').dataset.id);if(card)x.innerHTML=mediaTag(card)});linksSoon()});return `<div class="ph">Loading ${c.type=='video'?'video':c.type=='audio'?'voice note':'picture'}…</div>`}
+ if(!u)return `<div class="ph">${c.type=='video'?'Video':c.type=='audio'?'Voice note':'Picture'} not found on this device</div>`;
+ return c.type=='audio'?`<audio src="${esc(u)}" controls preload="metadata"></audio>`:c.type=='video'?`<video src="${esc(u)}" controls playsinline preload="metadata"></video>`:`<img src="${esc(u)}" alt="" draggable="false">`}
 
 /* ---------- loading ---------- */
 function setRO(){}function roleText(){}
@@ -142,7 +143,7 @@ function inner(c){
  case 'link':{if(!c.url)return P.canWrite?`<form class="lf"><input name="u" placeholder="Paste a web address" autocomplete="off" aria-label="Web address"><button>Add</button></form>`:'<div class="ph" style="height:auto;padding:12px">Empty link</div>';
   let host='';try{host=new URL(c.url).hostname.replace(/^www\./,'')}catch(e){}
   return `<div class="lk"><span class="fav">${esc((host[0]||'?').toUpperCase())}</span><div class="lkm">${ed('text',c.text,host||'Link title','txt lt')}<span class="host">${esc(host||c.url)}</span></div>${/^https:\/\//i.test(c.url)?`<a class="open" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open link">↗</a>`:''}</div>`}
- case 'image':case 'video':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap');
+ case 'image':case 'video':case 'audio':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap');
  case 'board':{const b=S.boards[c.board];const n=b?b.cards.filter(x=>!x.col).length:0;
   return `<button class="bic" data-act="open" aria-label="Open board"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></button>`+(b?ed('btitle',b.title,'Untitled board','txt bt'):'<div class="bt">Missing board</div>')+`<div class="sub">${n} card${n==1?'':'s'}</div>`}
  case 'column':{const kids=c.items.map(id=>find(id)).filter(Boolean);return ed('text',c.text,'Column title','txt ct')+`<div class="colb" data-col="${esc(c.id)}">${kids.map(k=>cardHTML(k,true)).join('')||'<div class="empty">Drop cards here</div>'}</div>`}
@@ -165,7 +166,7 @@ function buildCtx(){
  const ids=[...S.sel].filter(id=>find(id));if(!ids.length){ctx.hidden=true;return}
  const c=find(ids[0]);
  if(!P.canWrite){if(ids.length==1&&c.type=='board'){ctx.innerHTML=cb('open','Open');ctx.hidden=false;placeCtx()}else ctx.hidden=true;return}
- const colorable=ids.every(id=>!['swatch','image','video'].includes(find(id).type));
+ const colorable=ids.every(id=>!['swatch','image','video','audio'].includes(find(id).type));
  ctx.innerHTML=(colorable?COLORS.map(k=>`<button class="dot${(okc(c.color))==k?' on':''}" data-color="${k}" style="--c:${k||'transparent'}" aria-label="${k?'Colour '+k:'No colour'}"></button>`).join('')+'<i class="sep"></i>':'')+(ids.length==1&&c.type=='board'?cb('open','Open'):'')+(ids.length==1?cb('connect','Connect'):'')+cb('dup','Duplicate')+cb('del','Delete');
  ctx.hidden=false;placeCtx()}
 function placeCtx(){if(ctx.hidden)return;if(drag&&drag.kind=='move'){ctx.style.visibility='hidden';return}ctx.style.visibility='';const cr=canvas.getBoundingClientRect();let r;
@@ -203,9 +204,9 @@ async function loadImg(file){const url=URL.createObjectURL(file);try{return awai
 async function shrink(file,maxBytes,asUrl){const img=await loadImg(file);let max=asUrl?1600:2600,q=.86,out=null;
  for(let k=0;k<14;k++){const s=Math.min(1,max/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*s)),h=Math.max(1,Math.round(img.height*s));const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);
   out=asUrl?cv.toDataURL('image/jpeg',q):await new Promise(r=>cv.toBlob(r,'image/jpeg',q));const size=asUrl?out.length:(out?out.size:Infinity);if(size<maxBytes)break;if(q>.62)q-=.08;else max=Math.round(max*.8)}return out}
-async function addMedia(files,pt,col){if(!P.canWrite)return;files=[...files].filter(f=>f&&/^(image|video)\//.test(f.type));if(!files.length)return toast('Only pictures and videos can go on the board');
+async function addMedia(files,pt,col){if(!P.canWrite)return;files=[...files].filter(f=>f&&/^(image|video|audio)\//.test(f.type));if(!files.length)return toast('Only pictures, videos and audio can go on the board');
  for(let i=0;i<files.length;i++){const f=files[i],at={x:pt.x+i*30,y:pt.y+i*30};status(`Adding ${i+1} of ${files.length}…`);
-  try{const id=await Store.putMedia(f);addCard(f.type.startsWith('video/')?'video':'image',at,col,{media:id})}catch(e){fail(e)}}
+  try{const id=await Store.putMedia(f);addCard(f.type.startsWith('video/')?'video':f.type.startsWith('audio/')?'audio':'image',at,col,{media:id})}catch(e){fail(e)}}
  settled()}
 function collect(id,out){if(out.includes(id)||!S.boards[id])return;out.push(id);S.boards[id].cards.forEach(c=>{if(c.type=='board')collect(c.board,out)})}
 async function delSel(){if(!P.canWrite)return;
@@ -257,7 +258,7 @@ canvas.addEventListener('pointerdown',e=>{if(e.button>0)return;pointers.set(e.po
  const id=card.dataset.id;
  if(S.connect){e.preventDefault();connectClick(id);return}
  if(t.closest('[data-act=rs]')&&P.canWrite){e.preventDefault();snap();drag={kind:'rs',id,sx:e.clientX,w:find(id).w};canvas.setPointerCapture(e.pointerId);return}
- if(t.closest('input,button,a,form,label,video'))return;
+ if(t.closest('input,button,a,form,label,video,audio'))return;
  const editable=P.canWrite&&t.closest('[contenteditable=plaintext-only]');if(editable&&editable===document.activeElement)return;
  e.preventDefault();if(isEditing())document.activeElement.blur();
  if(e.shiftKey){S.sel.has(id)?S.sel.delete(id):S.sel.add(id)}else if(!S.sel.has(id))S.sel=new Set([id]);
@@ -342,7 +343,7 @@ ctx.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return
  else if(a=='connect'&&first){S.connect={from:first.id};setMode()}});
 
 /* ---------- toolbar ---------- */
-$('#tb').innerHTML=TOOLS.map(([k,l])=>`<button class="tool" data-tool="${k}" title="${k=='line'?'Line: click two cards to connect them':k=='image'?'Pictures and videos: click to add, or drop files on the board':l+': click, or drag onto the board'}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
+$('#tb').innerHTML=TOOLS.map(([k,l])=>`<button class="tool" data-tool="${k}" title="${k=='line'?'Line: click two cards to connect them':k=='image'?'Pictures, videos and audio: click to add, or drop files on the board':k=='voice'?'Voice note: click to record':l+': click, or drag onto the board'}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
 const tb=$('#tb');
 const pickMedia=(pt,col)=>{S.pendingMedia={pt,col};$('#file').click()};
 tb.addEventListener('pointerdown',e=>{const b=e.target.closest('[data-tool]');if(!b||e.button>0)return;const tool=b.dataset.tool;if(tool=='line')return;e.preventDefault();tdrag={tool,sx:e.clientX,sy:e.clientY,ghost:null};b.setPointerCapture(e.pointerId)});
@@ -351,12 +352,12 @@ tb.addEventListener('pointermove',e=>{if(!tdrag)return;if(!tdrag.ghost){if(Math.
 function endTool(e){if(!tdrag)return;const d=tdrag;tdrag=null;clearDrop();
  if(d.ghost){d.ghost.remove();const cr=canvas.getBoundingClientRect();if(e.type=='pointercancel'||e.clientX<cr.left||e.clientX>cr.right||e.clientY<cr.top||e.clientY>cr.bottom)return;
   const p=worldPt(e.clientX,e.clientY),col=d.tgt&&d.tgt.type=='col'?d.tgt:null,pt={x:p.x-DEFW[d.tool]*.3,y:p.y-24};
-  if(d.tool=='image')pickMedia(pt,col);else addCard(d.tool,pt,col);if(S.needRender)render();return}
+  if(d.tool=='image')pickMedia(pt,col);else if(d.tool=='voice')recordVoice(pt,col);else addCard(d.tool,pt,col);if(S.needRender)render();return}
  if(e.type=='pointercancel')return;
- if(d.tool=='image')pickMedia(centerPt(280),null);else addCard(d.tool,centerPt(DEFW[d.tool]))}
+ if(d.tool=='image')pickMedia(centerPt(280),null);else if(d.tool=='voice')recordVoice(centerPt(300),null);else addCard(d.tool,centerPt(DEFW[d.tool]))}
 tb.addEventListener('pointerup',endTool);tb.addEventListener('pointercancel',endTool);
 tb.addEventListener('click',e=>{const b=e.target.closest('[data-tool=line]');if(!b)return;S.sel.clear();refreshSel();S.connect=S.connect?null:{from:null};setMode()});
-tb.addEventListener('keydown',e=>{const b=e.target.closest('[data-tool]');if(b&&(e.key=='Enter'||e.key==' ')&&b.dataset.tool!='line'){e.preventDefault();const t=b.dataset.tool;if(t=='image')pickMedia(centerPt(280),null);else addCard(t,centerPt(DEFW[t]))}});
+tb.addEventListener('keydown',e=>{const b=e.target.closest('[data-tool]');if(b&&(e.key=='Enter'||e.key==' ')&&b.dataset.tool!='line'){e.preventDefault();const t=b.dataset.tool;if(t=='image')pickMedia(centerPt(280),null);else if(t=='voice')recordVoice(centerPt(300),null);else addCard(t,centerPt(DEFW[t]))}});
 $('#file').addEventListener('change',e=>{const p=S.pendingMedia||{pt:centerPt(280)};addMedia(e.target.files,p.pt,p.col);e.target.value=''});
 
 /* ---------- keyboard + paste ---------- */
@@ -377,7 +378,7 @@ document.addEventListener('keydown',e=>{const mod=e.ctrlKey||e.metaKey,k=e.key.t
  if(k=='n'){e.preventDefault();addCard('note',centerPt())}
  else if(e.key=='Enter'&&S.sel.size==1){const c=find([...S.sel][0]);const f=c&&el(c.id)?.querySelector('[contenteditable=plaintext-only]');if(f){e.preventDefault();f.focus();caretEnd(f)}}});
 document.addEventListener('paste',e=>{if(!P.canWrite||isEditing()||!$('#search').hidden||!$('#dlg').hidden)return;const cd=e.clipboardData;if(!cd)return;
- const files=[...cd.items].filter(i=>i.kind=='file'&&/^(image|video)\//.test(i.type)).map(i=>i.getAsFile());
+ const files=[...cd.items].filter(i=>i.kind=='file'&&/^(image|video|audio)\//.test(i.type)).map(i=>i.getAsFile());
  if(files.length){e.preventDefault();addMedia(files,centerPt(280));return}
  const txt=cd.getData('text/plain').trim();if(!txt)return;e.preventDefault();
  if(/^https?:\/\/\S+$/i.test(txt))addCard('link',centerPt(300),null,{url:txt,text:titleFrom(txt)});else addCard('note',centerPt(),null,{text:txt})});
@@ -385,7 +386,7 @@ document.addEventListener('paste',e=>{if(!P.canWrite||isEditing()||!$('#search')
 /* ---------- search, drawer, dialogs ---------- */
 function closeOv(){$('#search').hidden=true;$('#dlg').hidden=true;if(S.confirmRes){S.confirmRes(false);S.confirmRes=null}}
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('pointerdown',e=>{if(e.target===o)closeOv()}));
-const TN={note:'Note',heading:'Heading',todo:'To-do',link:'Link',image:'Picture',video:'Video',board:'Board',column:'Column',swatch:'Colour'};
+const TN={note:'Note',heading:'Heading',todo:'To-do',link:'Link',image:'Picture',video:'Video',audio:'Voice note',board:'Board',column:'Column',swatch:'Colour'};
 let results=[],rsel=0;
 function openSearch(){$('#search').hidden=false;const q=$('#sq');q.value='';doSearch();setTimeout(()=>q.focus(),0)}
 function doSearch(){const q=$('#sq').value.trim().toLowerCase();results=[];
@@ -405,6 +406,23 @@ $('#tree').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if
 function modal(h){$('#dlgp').innerHTML=h;$('#dlg').hidden=false;$('#dlgp').querySelectorAll('[data-close]').forEach(b=>b.onclick=closeOv);return $('#dlgp')}
 function confirmBox(msg,ok){return new Promise(res=>{const m=modal(`<h2>Are you sure?</h2><p>${esc(msg)}</p><div class="row"><button class="pri" id="cOk">${esc(ok)}</button><button id="cNo">Cancel</button></div>`);S.confirmRes=res;
  m.querySelector('#cOk').onclick=()=>{S.confirmRes=null;$('#dlg').hidden=true;res(true)};m.querySelector('#cNo').onclick=closeOv;m.querySelector('#cOk').focus()})}
+/* ---------- voice notes ---------- */
+// Records from the microphone and saves the recording on this device as a voice-note card.
+async function recordVoice(pt,col){if(!P.canWrite)return;
+ if(!navigator.mediaDevices||!window.MediaRecorder)return toast('This browser can’t record audio. Try Chrome, Edge, Firefox or Safari.');
+ let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast('Microphone access was blocked. Allow it in the browser’s address bar and try again.')}
+ const types=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg'];const mime=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+ const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined),chunks=[];let keep=true,t0=Date.now(),iv;
+ rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+ const m=modal(`<h2>Recording a voice note</h2><p><span class="recdot"></span><b id="rt">0:00</b> · speak now</p><div class="row"><button class="pri" id="rs">Stop and save</button><button id="rc">Cancel</button></div>`);
+ const stop=save=>{keep=save;clearInterval(iv);if(rec.state!='inactive')rec.stop();stream.getTracks().forEach(t=>t.stop());$('#dlg').hidden=true;S.confirmRes=null};
+ S.confirmRes=()=>stop(false);
+ m.querySelector('#rs').onclick=()=>stop(true);m.querySelector('#rc').onclick=()=>stop(false);
+ iv=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);const el2=m.querySelector('#rt');if(el2)el2.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')},250);
+ rec.onstop=async()=>{if(!keep||!chunks.length)return;const blob=new Blob(chunks,{type:(rec.mimeType||mime||'audio/webm').split(';')[0]});
+  try{const id=await Store.putMedia(blob);const s=Math.round((Date.now()-t0)/1000);addCard('audio',pt,col,{media:id,text:'Voice note · '+new Date().toLocaleString([], {dateStyle:'medium',timeStyle:'short'})+' · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')})}catch(e){fail(e)}};
+ rec.start(1000)}
+
 /* ---------- share: board files ---------- */
 // A .board file = "BRDS1" + 4-byte length + JSON (boards + media list) + the media files one after another.
 const MAGIC='BRDS1';
