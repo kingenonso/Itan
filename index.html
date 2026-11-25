@@ -158,13 +158,19 @@ body.ro .rs,body.ro .add{display:none}
 #role{display:block;color:var(--ink);font-weight:600;margin-bottom:2px}
 .t-audio{padding:10px 10px 8px}.t-audio .im audio{display:block;width:100%;height:40px}.t-audio .cap{padding:6px 4px 0;font-size:14px;color:var(--mute)}
 .recdot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--acc);margin-right:8px;vertical-align:-1px;animation:rp 1s ease-in-out infinite}@keyframes rp{50%{opacity:.25}}
-@media(prefers-reduced-motion:reduce){.recdot{animation:none}}
+.prog{height:6px;border-radius:3px;background:var(--bg);overflow:hidden;margin:2px 0 4px}.prog i{display:block;height:100%;background:#36a86d;transition:width .3s}
+.pc{font-size:13px;color:var(--mute);margin-bottom:8px}
+.tdrow{display:flex;justify-content:space-between;gap:10px}
+.vb{color:var(--acc);font-weight:600}
+.ib.ex.on{background:var(--acc);border-color:var(--acc);color:#fff}.ib.ex svg{fill:currentColor;stroke:none}
+@media(prefers-reduced-motion:reduce){.prog i{transition:none}.recdot{animation:none}}
 @media(prefers-reduced-motion:reduce){.card.flash{animation:none;outline:3px solid var(--acc)}}
 </style></head><body>
 <div id="app">
   <nav id="tb" aria-label="Add to board"></nav>
   <header id="top">
     <div id="crumbs"></div>
+    <div id="explain" style="display:flex;gap:4px;flex:none"></div>
     <span id="status"></span>
     <button class="ib" id="bSearch" title="Search all boards (Ctrl+K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span class="hide-s">Search</span></button>
     <button class="ib" id="bShare" title="Send a board to someone, or open one"><svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M5 13v5.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V13"/></svg><span class="hide-s">Share</span></button>

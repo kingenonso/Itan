@@ -21,7 +21,7 @@ const ICON={
  swatch:'<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z"/>',
  line:'<path d="M5 19L19 5M11 5h8v8"/>',
  voice:'<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/>'};
-const TOOLS=[['note','Note'],['heading','Heading'],['todo','To-do'],['link','Link'],['image','Media'],['voice','Voice'],['board','Board'],['column','Column'],['swatch','Colour'],['line','Line']];
+const TOOLS=[['note','Note'],['heading','Heading'],['todo','Checklist'],['link','Link'],['image','Media'],['voice','Voice'],['board','Board'],['column','Column'],['swatch','Colour'],['line','Line']];
 const canvas=$('#canvas'),world=$('#world'),svg=$('#links'),ctx=$('#ctx');
 const S={boards:{},images:{},cur:'home',view:{},sel:new Set(),selLink:null,linkPt:null,connect:null,undo:[],redo:[],editSnapped:false,needRender:false};
 /* P.remote: what the store holds (key -> doc). P.sent: what we last saw/sent per key. P.pend: keys with writes in flight. */
@@ -30,11 +30,11 @@ let drag=null,tdrag=null,pinch=null;const pointers=new Map();
 
 /* ---------- documents <-> boards ---------- */
 function stable(v){if(Array.isArray(v))return '['+v.map(stable).join(',')+']';if(v&&typeof v=='object')return '{'+Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>JSON.stringify(k)+':'+stable(v[k])).join(',')+'}';return JSON.stringify(v===undefined?null:v)}
-function docsOf(boards){const m=new Map();for(const b of Object.values(boards)){m.set('b:'+b.id,{kind:'board',id:b.id,title:b.title,parent:b.parent,links:b.links,created:b.created||0});for(const c of b.cards)m.set('c:'+c.id,{...c,_b:b.id})}return m}
-function buildBoards(m){const bs={};for(const[k,v]of m)if(k[0]=='b'&&v&&okId(v.id))bs[v.id]={id:v.id,title:v.title,parent:v.parent,links:v.links,created:v.created,cards:[]};
+function docsOf(boards){const m=new Map();for(const b of Object.values(boards)){m.set('b:'+b.id,{kind:'board',id:b.id,title:b.title,parent:b.parent,links:b.links,created:b.created||0,voice:b.voice||null,voiceLen:b.voiceLen||0});for(const c of b.cards)m.set('c:'+c.id,{...c,_b:b.id})}return m}
+function buildBoards(m){const bs={};for(const[k,v]of m)if(k[0]=='b'&&v&&okId(v.id))bs[v.id]={id:v.id,title:v.title,parent:v.parent,links:v.links,created:v.created,voice:v.voice,voiceLen:v.voiceLen,cards:[]};
  for(const[k,v]of m)if(k[0]=='c'&&v&&bs[v._b]){const c={...v};delete c._b;bs[v._b].cards.push(c)}
  for(const id in bs){bs[id].cards.sort((a,b)=>(+a.o||0)-(+b.o||0));normalize(bs[id])}return bs}
-function normalize(b){b.title=String(b.title??'Untitled board');b.parent=b.parent==null?null:String(b.parent);b.created=+b.created||0;
+function normalize(b){b.title=String(b.title??'Untitled board');b.parent=b.parent==null?null:String(b.parent);b.created=+b.created||0;b.voice=typeof b.voice=='string'&&b.voice?b.voice:null;b.voiceLen=+b.voiceLen||0;
  b.cards=(Array.isArray(b.cards)?b.cards:[]).filter(c=>c&&TYPES.includes(c.type)).map((c,i)=>{const k={...c,id:okId(String(c.id))?String(c.id):uid(),x:+c.x||0,y:+c.y||0,w:+c.w||DEFW[c.type],text:String(c.text??''),o:Number.isFinite(+c.o)&&c.o!==null&&c.o!==''?+c.o:i};
   if(k.type=='todo')k.items=(Array.isArray(c.items)?c.items:[]).map(i=>({t:String(i&&i.t||''),d:!!(i&&i.d)}));
   if(k.type=='column')k.items=(Array.isArray(c.items)?c.items:[]).map(String);
@@ -139,24 +139,35 @@ function inner(c){
  switch(c.type){
  case 'note':return ed('text',c.text,'Type something…');
  case 'heading':return ed('text',c.text,'Heading','txt h');
- case 'todo':return ed('text',c.text,'To-do list','txt tt')+`<ul class="todo">${c.items.map((it,i)=>`<li class="${it.d?'done':''}"><button class="ck" data-act="ck" data-i="${i}" aria-label="Tick item"><svg viewBox="0 0 12 12"><path d="M2 6.5l2.5 2.5L10 3"/></svg></button>${ed('item',it.t,'Item','txt it',`data-i="${i}"`)}</li>`).join('')}</ul><button class="add" data-act="additem">+ Add item</button>`;
+ case 'todo':{const n=c.items.length,dn=c.items.filter(i=>i.d).length;return ed('text',c.text,'Checklist','txt tt')+(n?`<div class="prog" title="${dn} of ${n} done"><i style="width:${(dn/n*100).toFixed(1)}%"></i></div><div class="pc">${dn==n?'All done':dn+' of '+n+' done'}</div>`:'')+`<ul class="todo">${c.items.map((it,i)=>`<li class="${it.d?'done':''}"><button class="ck" data-act="ck" data-i="${i}" aria-label="Tick item"><svg viewBox="0 0 12 12"><path d="M2 6.5l2.5 2.5L10 3"/></svg></button>${ed('item',it.t,'Item','txt it',`data-i="${i}"`)}</li>`).join('')}</ul><div class="tdrow"><button class="add" data-act="additem">+ Add item</button>${dn?'<button class="add" data-act="cleardone">Clear done</button>':''}</div>`}
  case 'link':{if(!c.url)return P.canWrite?`<form class="lf"><input name="u" placeholder="Paste a web address" autocomplete="off" aria-label="Web address"><button>Add</button></form>`:'<div class="ph" style="height:auto;padding:12px">Empty link</div>';
   let host='';try{host=new URL(c.url).hostname.replace(/^www\./,'')}catch(e){}
   return `<div class="lk"><span class="fav">${esc((host[0]||'?').toUpperCase())}</span><div class="lkm">${ed('text',c.text,host||'Link title','txt lt')}<span class="host">${esc(host||c.url)}</span></div>${/^https:\/\//i.test(c.url)?`<a class="open" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open link">↗</a>`:''}</div>`}
  case 'image':case 'video':case 'audio':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap');
  case 'board':{const b=S.boards[c.board];const n=b?b.cards.filter(x=>!x.col).length:0;
-  return `<button class="bic" data-act="open" aria-label="Open board"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></button>`+(b?ed('btitle',b.title,'Untitled board','txt bt'):'<div class="bt">Missing board</div>')+`<div class="sub">${n} card${n==1?'':'s'}</div>`}
+  return `<button class="bic" data-act="open" aria-label="Open board"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></button>`+(b?ed('btitle',b.title,'Untitled board','txt bt'):'<div class="bt">Missing board</div>')+`<div class="sub">${n} card${n==1?'':'s'}${b&&b.voice?' · <span class="vb" title="Has a voice explanation">voice explanation</span>':''}</div>`}
  case 'column':{const kids=c.items.map(id=>find(id)).filter(Boolean);return ed('text',c.text,'Column title','txt ct')+`<div class="colb" data-col="${esc(c.id)}">${kids.map(k=>cardHTML(k,true)).join('')||'<div class="empty">Drop cards here</div>'}</div>`}
  case 'swatch':{const h=okc(c.hex)||'#737a84';return `<label class="sw" style="background:${h}"><input type="color" value="${h}" data-act="hex" aria-label="Pick colour"${P.canWrite?'':' disabled'}></label>`+ed('text',c.text,h,'txt cap')}}}
 function cardHTML(c,inCol){const cl=okc(c.color);const strip=cl&&!['board','swatch','heading'].includes(c.type);
  return `<div class="card t-${c.type}${S.sel.has(c.id)?' sel':''}${inCol?' inc':''}" data-id="${esc(c.id)}" style="${inCol?'':`left:${c.x}px;top:${c.y}px;width:${c.w}px;`}${cl?`--c:${cl};`:c.type=='board'?'--c:#737a84;':''}">${strip?'<i class="strip"></i>':''}${inner(c)}${inCol?'':'<span class="rs" data-act="rs"></span>'}</div>`}
 function render(){S.needRender=false;const b=B();if(!b)return;world.querySelectorAll(':scope>.card').forEach(e=>e.remove());
  world.insertAdjacentHTML('beforeend',b.cards.filter(c=>!c.col||!find(c.col)).map(c=>cardHTML(c)).join(''));
- $('#empty').hidden=b.cards.length>0;crumbs();applyView();drawLinks();buildCtx();stats();setMode()}
+ $('#empty').hidden=b.cards.length>0;crumbs();explainBar();applyView();drawLinks();buildCtx();stats();setMode()}
 function applyView(){const v=V();world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.z})`;canvas.style.backgroundPosition=`${v.x}px ${v.y}px`;canvas.style.backgroundSize=`${24*v.z}px ${24*v.z}px`;$('#zl').textContent=Math.round(v.z*100)+'%';placeCtx()}
 function edge(a,b){const ax=a.x+a.w/2,ay=a.y+a.h/2,dx=b.x+b.w/2-ax,dy=b.y+b.h/2-ay;if(!dx&&!dy)return[ax,ay];const s=Math.min(dx?Math.abs((a.w/2+7)/dx):1e9,dy?Math.abs((a.h/2+7)/dy):1e9);return[ax+dx*s,ay+dy*s]}
 function drawLinks(){const b=B();if(!b)return;svg.innerHTML=`<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs><g transform="translate(20000 20000)">`+b.links.map(l=>{const A=wrect(l.from),Z=wrect(l.to);if(!A||!Z)return'';const[x1,y1]=edge(A,Z),[x2,y2]=edge(Z,A),d=`M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`;return `<g class="${S.selLink==l.id?'sel':''}" data-link="${esc(l.id)}"><path class="hit" d="${d}"/><path class="vis" d="${d}" marker-end="url(#ah)"/></g>`}).join('')+'</g>'}
 let lraf;function linksSoon(){cancelAnimationFrame(lraf);lraf=requestAnimationFrame(()=>{drawLinks();placeCtx()})}
+function explainBar(){const b=B(),x=$('#explain');if(!b){x.innerHTML='';return}if(S.playing&&S.playing.board!==b.id)stopExplain();
+ if(b.voice){const len=b.voiceLen?` · ${Math.floor(b.voiceLen/60)}:${String(b.voiceLen%60).padStart(2,'0')}`:'';const on=S.playing&&S.playing.board===b.id;
+  x.innerHTML=`<button class="ib ex on" id="exPlay" title="Listen to the explanation of this board">${on?'<svg viewBox="0 0 24 24"><rect x="7" y="5.5" width="3.5" height="13" rx="1"/><rect x="13.5" y="5.5" width="3.5" height="13" rx="1"/></svg>':'<svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>'}<span class="hide-s">${on?'Pause':'Explanation'}${len}</span></button>`+(P.canWrite?`<button class="ib" id="exMore" aria-label="Explanation options">⋯</button>`:'')}
+ else x.innerHTML=P.canWrite?`<button class="ib" id="exRec" title="Record a voice explanation of this board"><svg viewBox="0 0 24 24">${ICON.voice}</svg><span class="hide-s">Explain board</span></button>`:''}
+function stopExplain(){if(S.playing){S.playing.audio.pause();S.playing=null}}
+function recordExplain(){const b=B();recordVoice(null,null,(id,secs)=>{snap();b.voice=id;b.voiceLen=secs;touch();render();toast('Voice explanation saved. Anyone who opens this board can play it.')},`Explain “${b.title||'this board'}”`)}
+$('#explain').addEventListener('click',async e=>{const t=e.target.closest('button');if(!t)return;const b=B();
+ if(t.id=='exRec')return recordExplain();
+ if(t.id=='exPlay'){if(S.playing&&S.playing.board===b.id){stopExplain();return explainBar()}const u=await Store.mediaUrl(b.voice);if(!u)return toast('The explanation recording isn’t on this device');const a=new Audio(u);S.playing={board:b.id,audio:a};a.onended=()=>{S.playing=null;explainBar()};a.play().catch(()=>{S.playing=null;toast('Couldn’t play the recording');explainBar()});return explainBar()}
+ if(t.id=='exMore'){const m=modal(`<h2>Board explanation</h2><p>A voice recording that explains “${esc(b.title||'this board')}”. It plays from the button at the top and travels with the board when you share it.</p><div class="row"><button class="pri" id="exNew">Record again</button><button id="exDel">Remove</button><button data-close>Close</button></div>`);
+  m.querySelector('#exNew').onclick=()=>{closeOv();stopExplain();recordExplain()};m.querySelector('#exDel').onclick=()=>{closeOv();stopExplain();snap();b.voice=null;b.voiceLen=0;touch();render();toast('Explanation removed. Ctrl+Z brings it back.')}}});
 function crumbs(){const p=pathOf(S.cur);$('#crumbs').innerHTML=p.map((b,i)=>i==p.length-1?`<span class="cur" contenteditable="${P.canWrite?'plaintext-only':'false'}" spellcheck="false" id="curT" aria-label="Board name">${esc(b.title)}</span>`:`<button data-go="${esc(b.id)}">${esc(b.title||'Untitled')}</button><i>›</i>`).join('')}
 function stats(){const n=Object.keys(S.boards).length;$('#count').textContent=`${n} board${n==1?'':'s'}`;$('#tcount').textContent=`${n} board${n==1?'':'s'}, nested as deep as you like`;if(!$('#drawer').hidden)drawTree()}
 function refreshSel(){world.querySelectorAll('.card').forEach(e=>e.classList.toggle('sel',S.sel.has(e.dataset.id)));buildCtx()}
@@ -324,7 +335,8 @@ world.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(!a)
  if(k=='open')return openBoard(c.board);
  if(!P.canWrite)return;
  if(k=='ck'){snap();const it=c.items[+a.dataset.i];if(it)it.d=!it.d;touch();render()}
- else if(k=='additem'){snap();c.items.push({t:'',d:false});touch();render();focusItem(c,c.items.length-1)}});
+ else if(k=='additem'){snap();c.items.push({t:'',d:false});touch();render();focusItem(c,c.items.length-1)}
+ else if(k=='cleardone'){snap();const n=c.items.filter(i=>i.d).length;c.items=c.items.filter(i=>!i.d);touch();render();toast(`Cleared ${n} done item${n==1?'':'s'}`)}});
 world.addEventListener('submit',e=>{e.preventDefault();if(!P.canWrite)return;const f=e.target,c=find(f.closest('.card').dataset.id);let u=f.u.value.trim();if(!u||!c)return;if(!/^[a-z]+:\/\//i.test(u))u='https://'+u;snap();c.url=u;if(!c.text)c.text=titleFrom(u);touch();render()});
 $('#crumbs').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)openBoard(b.dataset.go)});
 $('#crumbs').addEventListener('focusin',e=>{if(e.target.id=='curT')S.crumbSnapped=false});
@@ -386,7 +398,7 @@ document.addEventListener('paste',e=>{if(!P.canWrite||isEditing()||!$('#search')
 /* ---------- search, drawer, dialogs ---------- */
 function closeOv(){$('#search').hidden=true;$('#dlg').hidden=true;if(S.confirmRes){S.confirmRes(false);S.confirmRes=null}}
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('pointerdown',e=>{if(e.target===o)closeOv()}));
-const TN={note:'Note',heading:'Heading',todo:'To-do',link:'Link',image:'Picture',video:'Video',audio:'Voice note',board:'Board',column:'Column',swatch:'Colour'};
+const TN={note:'Note',heading:'Heading',todo:'Checklist',link:'Link',image:'Picture',video:'Video',audio:'Voice note',board:'Board',column:'Column',swatch:'Colour'};
 let results=[],rsel=0;
 function openSearch(){$('#search').hidden=false;const q=$('#sq');q.value='';doSearch();setTimeout(()=>q.focus(),0)}
 function doSearch(){const q=$('#sq').value.trim().toLowerCase();results=[];
@@ -408,19 +420,19 @@ function confirmBox(msg,ok){return new Promise(res=>{const m=modal(`<h2>Are you 
  m.querySelector('#cOk').onclick=()=>{S.confirmRes=null;$('#dlg').hidden=true;res(true)};m.querySelector('#cNo').onclick=closeOv;m.querySelector('#cOk').focus()})}
 /* ---------- voice notes ---------- */
 // Records from the microphone and saves the recording on this device as a voice-note card.
-async function recordVoice(pt,col){if(!P.canWrite)return;
+async function recordVoice(pt,col,onSave,title){if(!P.canWrite)return;
  if(!navigator.mediaDevices||!window.MediaRecorder)return toast('This browser can’t record audio. Try Chrome, Edge, Firefox or Safari.');
  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast('Microphone access was blocked. Allow it in the browser’s address bar and try again.')}
  const types=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg'];const mime=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
  const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined),chunks=[];let keep=true,t0=Date.now(),iv;
  rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
- const m=modal(`<h2>Recording a voice note</h2><p><span class="recdot"></span><b id="rt">0:00</b> · speak now</p><div class="row"><button class="pri" id="rs">Stop and save</button><button id="rc">Cancel</button></div>`);
+ const m=modal(`<h2>${esc(title||'Recording a voice note')}</h2><p><span class="recdot"></span><b id="rt">0:00</b> · speak now</p><div class="row"><button class="pri" id="rs">Stop and save</button><button id="rc">Cancel</button></div>`);
  const stop=save=>{keep=save;clearInterval(iv);if(rec.state!='inactive')rec.stop();stream.getTracks().forEach(t=>t.stop());$('#dlg').hidden=true;S.confirmRes=null};
  S.confirmRes=()=>stop(false);
  m.querySelector('#rs').onclick=()=>stop(true);m.querySelector('#rc').onclick=()=>stop(false);
  iv=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);const el2=m.querySelector('#rt');if(el2)el2.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')},250);
  rec.onstop=async()=>{if(!keep||!chunks.length)return;const blob=new Blob(chunks,{type:(rec.mimeType||mime||'audio/webm').split(';')[0]});
-  try{const id=await Store.putMedia(blob);const s=Math.round((Date.now()-t0)/1000);addCard('audio',pt,col,{media:id,text:'Voice note · '+new Date().toLocaleString([], {dateStyle:'medium',timeStyle:'short'})+' · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')})}catch(e){fail(e)}};
+  try{const id=await Store.putMedia(blob);const s=Math.round((Date.now()-t0)/1000);if(onSave)return onSave(id,s);addCard('audio',pt,col,{media:id,text:'Voice note · '+new Date().toLocaleString([], {dateStyle:'medium',timeStyle:'short'})+' · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')})}catch(e){fail(e)}};
  rec.start(1000)}
 
 /* ---------- share: board files ---------- */
@@ -428,7 +440,7 @@ async function recordVoice(pt,col){if(!P.canWrite)return;
 const MAGIC='BRDS1';
 function safeName(t){return (String(t||'board').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60)||'board')}
 async function exportBoard(rootId){const ids=[];collect(rootId,ids);const boards={};ids.forEach(id=>boards[id]=S.boards[id]);
- const mids=[...new Set(ids.flatMap(id=>S.boards[id].cards.filter(c=>c.media).map(c=>c.media)))];status('Preparing file…');
+ const mids=[...new Set(ids.flatMap(id=>[...S.boards[id].cards.filter(c=>c.media).map(c=>c.media),...(S.boards[id].voice?[S.boards[id].voice]:[])]))];status('Preparing file…');
  const media=[],parts=[];for(const id of mids){const b=await Store.getMedia(id).catch(()=>null);if(b){media.push({id,size:b.size,type:b.type||''});parts.push(b)}}
  const json=new TextEncoder().encode(JSON.stringify({app:'boards',v:1,root:rootId,boards,media}));const len=new Uint8Array(4);new DataView(len.buffer).setUint32(0,json.length,true);
  const file=new Blob([MAGIC,len,json,...parts],{type:'application/octet-stream'});const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=safeName(S.boards[rootId].title)+'.board';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
@@ -440,7 +452,7 @@ async function importBoardFile(file){if(!P.canWrite)return;try{
  for(const m of (Array.isArray(o.media)?o.media:[])){const size=+m.size||0;const blob=file.slice(off,off+size,String(m.type||''));off+=size;mediaMap[m.id]=await Store.putMedia(blob)}
  const src={};for(const[k,b]of Object.entries(o.boards))if(okId(k)&&b&&Array.isArray(b.cards))src[k]=normalize({...b,id:k});
  snap();const seen=new Set();
- const clone=(id,parent)=>{const b=src[id];if(!b||seen.has(id))return null;seen.add(id);const nb=JSON.parse(JSON.stringify(b));nb.id='b'+uid();nb.parent=parent;const map={};nb.cards.forEach(c=>map[c.id]=uid());
+ const clone=(id,parent)=>{const b=src[id];if(!b||seen.has(id))return null;seen.add(id);const nb=JSON.parse(JSON.stringify(b));nb.id='b'+uid();nb.parent=parent;if(nb.voice)nb.voice=mediaMap[nb.voice]||null;const map={};nb.cards.forEach(c=>map[c.id]=uid());
   nb.cards=nb.cards.map(c=>{const k={...c,id:map[c.id]};if(k.col)k.col=map[k.col]||null;if(k.type=='column')k.items=k.items.map(x=>map[x]).filter(Boolean);if(k.media)k.media=mediaMap[k.media]||k.media;if(k.type=='board')k.board=clone(c.board,nb.id)||'';return k});
   nb.links=nb.links.filter(l=>map[l.from]&&map[l.to]).map(l=>({id:uid(),from:map[l.from],to:map[l.to]}));S.boards[nb.id]=nb;return nb.id};
  const rootNew=clone(o.root,S.cur);const rb=S.boards[rootNew];if(o.root=='home'&&rb.title=='Home')rb.title='Imported boards';
@@ -452,7 +464,7 @@ $('#bShare').onclick=()=>{const cur=B();const m=modal(`<h2>Share a board</h2><p>
 $('#boardFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importBoardFile(f);e.target.value=''});
 $('#bStore').onclick=async()=>{const m=modal(`<h2>Storage on this device</h2><p>Checking…</p>`);let u={used:0,available:0,persisted:false},list=[];
  try{u=await Store.usage();list=await Store.listMedia()}catch(e){}
- const used=new Set();Object.values(S.boards).forEach(b=>b.cards.forEach(c=>{if(c.media)used.add(c.media)}));const unused=list.filter(x=>!used.has(x.id)),ub=unused.reduce((n,x)=>n+x.size,0);
+ const used=new Set();Object.values(S.boards).forEach(b=>{if(b.voice)used.add(b.voice);b.cards.forEach(c=>{if(c.media)used.add(c.media)})});const unused=list.filter(x=>!used.has(x.id)),ub=unused.reduce((n,x)=>n+x.size,0);
  const pct=u.available?Math.min(100,u.used/u.available*100):0;
  m.innerHTML=`<h2>Storage on this device</h2><p>Your boards, pictures and videos are saved here on this device, not on a server, so the only limit is this device’s free space. Each browser and device keeps its own copy.</p><div class="meter"><i style="width:${pct.toFixed(1)}%"></i></div>
  <div class="kv"><span>Used</span><b>${esc(mb(u.used))}</b><span>Space this app may use</span><b>${u.available?esc(mb(u.available)):'Not reported'}</b><span>Protected from clean-up</span><b>${u.persisted?'Yes':'Not yet'}</b><span>Media not on any board</span><b>${unused.length} file${unused.length==1?'':'s'} · ${esc(mb(ub))}</b></div>
