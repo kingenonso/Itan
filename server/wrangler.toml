@@ -12,3 +12,15 @@ class_name = "Room"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+[[durable_objects.bindings]]
+name = "ALERTS"
+class_name = "Alerts"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Alerts"]
+
+# check the weather for films with alerts turned on, every 3 hours
+[triggers]
+crons = ["17 */3 * * *"]

@@ -8,7 +8,8 @@
 
   /* ================= SOUND (sound recordist, boom op) ================= */
   const MICS = ['Boom', 'Lav 1', 'Lav 2', 'Lav 3', 'Lav 4', 'Lav 5', 'Lav 6', 'Plant mic', 'ADR later'];
-  F.desks.push({ id: 'sound', label: 'Sound', who: 'Sound recordist, boom op', icon: '🎙', render(el, d) {
+  F.desks.push({ id: 'sound', group: 'Sound', label: 'Sound', who: 'Sound recordist, boom op', icon: '🎙',
+    status(d) { const m = F.desk(d, 'sound', {}).mics || {}, cast = d.people.filter(p => p.kind === 'cast' && d.scenes.some(s => (s.cast || []).includes(p.id))); return { ready: cast.length ? cast.filter(p => m[p.id]).length / cast.length : null, note: `${cast.filter(p => m[p.id]).length} of ${cast.length} cast on the mic plan` }; }, render(el, d) {
     const So = F.desk(d, 'sound', {}), mics = So.mics || {}, ui = this.ui = this.ui || {};
     if (!ui.day || !d.days.find(x => x.id === ui.day)) ui.day = firstDay(d);
     const day = d.days.find(x => x.id === ui.day), cast = d.people.filter(p => p.kind === 'cast' && d.scenes.some(s => (s.cast || []).includes(p.id)));
@@ -61,7 +62,8 @@
     const cnt = cen.map((_, j) => lab.filter(x => x === j).length);
     return cen.map((c2, j) => ({ c: '#' + c2.map(v => Math.round(v).toString(16).padStart(2, '0')).join(''), n: cnt[j] })).sort((a, b) => b.n - a.n).map(x => x.c);
   };
-  F.desks.push({ id: 'colour', label: 'Colour', who: 'Colorist, DP, DIT', icon: '🎨', render(el, d) {
+  F.desks.push({ id: 'colour', group: 'Post', label: 'Colour', who: 'Colorist, DP', icon: '🎨',
+    status(d) { const C = F.desk(d, 'colour', {}), n = new Set((C.looks || []).flatMap(x => x.scenes || [])).size; return { ready: d.scenes.length ? n / d.scenes.length : null, note: `${(C.looks || []).length} looks covering ${n} of ${d.scenes.length} scenes` }; }, render(el, d) {
     const Co = F.desk(d, 'colour', {}), looks = Co.looks || [], spec = Co.spec || {}, ui = this.ui = this.ui || {};
     if (!ui.look || !looks.find(x => x.id === ui.look)) ui.look = looks[0] && looks[0].id;
     const L = looks.find(x => x.id === ui.look), scenes = F.sortScenes(d), used = id => looks.find(x => x.id !== ui.look && (x.scenes || []).includes(id));
@@ -106,7 +108,7 @@
 
   /* ================= PRODUCER (the whole film at a glance) ================= */
   const KEY_CREW = [['Director', /direct(or|ed)(?!.*(photo|assist|art))/i], ['Producer', /produc/i], ['Director of photography', /photograph|\bdop\b|\bdp\b|cinematograph/i], ['Gaffer', /gaffer|lighting/i], ['Sound recordist', /sound|boom|mixer/i], ['1st AD', /assistant director|\bad\b/i], ['Editor', /edit/i], ['Art or production design', /art|production design|props/i], ['Hair and makeup', /makeup|hmu|hair/i], ['Wardrobe', /wardrobe|costume|stylist/i]];
-  F.desks.push({ id: 'prod', label: 'Producer', who: 'Producer, line producer, PM', icon: '📋', render(el, d) {
+  F.producerRisks = d => {
     const today = N.todayStr(0), risks = [], add = (lvl, text, go, label) => risks.push({ lvl, text, go, label });
     const b = d.budget, bt = b && F.budgetTotals ? F.budgetTotals(b) : null, cur = (b && b.cur) || '₦', money = v => cur + ' ' + Math.round(v).toLocaleString();
     const wrapped = d.days.filter(x => (x.set && x.set.wrapped) || (x.date && x.date < today)), pages = ss => ss.reduce((n, s) => n + (s.pages || 0), 0);
@@ -126,11 +128,14 @@
       if (l.permit === 'Refused') add('bad', `${l.name}: permit refused`, 'locations');
       else if (used && (!l.permit || l.permit === 'Asked')) add('warn', `${l.name}: permit ${l.permit === 'Asked' ? 'still waiting' : 'not sorted'}`, 'locations');
       if (num(l.fee) && !l.budgeted && b) add('info', `${l.name}: fee not in the budget`, 'locations'); });
-    const P = F.desk(d, 'props', {}), soon = F.nextDays(d, 3).flatMap(x => F.dayScenes(d, x)), late = (P.items || []).filter(x => ['need', 'src'].includes(x.status || 'need') && F.propScenes(d, x.name).some(s => soon.includes(s)));
-    if (late.length) add('bad', `Props not ready for the next 3 days: ${late.map(x => x.name).join(', ')}`, 'desk:props');
+    F.deskAlerts(d).filter(a => a.desk !== 'prod' && a.desk !== 'director').forEach(a => add(a.lvl, `${a.label}: ${a.text}`, 'desk:' + a.desk));
     if (F.weatherAlerts) F.nextDays(d, 4).forEach(x => x.wx && F.weatherAlerts(d, x, x.wx).filter(a => a.lvl === 'bad').forEach(a => add('bad', `${F.dayLabel(d, x)}: ${a.text}`, 'weather')));
     const circled = (d.takes || []).filter(t => t.mark === 'good' || t.mark === 'circle').length;
     const order = { bad: 0, warn: 1, info: 2 }; risks.sort((a, b2) => order[a.lvl] - order[b2.lvl]);
+    return { risks, bt, money, wrapped, allPages, shotPages, next, cast, crew, uncast, circled };
+  };
+  F.desks.push({ id: 'prod', group: 'Production', label: 'Producer', who: 'Producer, line producer, PM', icon: '📋', render(el, d) {
+    const { risks, bt, money, wrapped, allPages, shotPages, next, cast, crew, uncast, circled } = F.producerRisks(d);
     const go = r => r.go.startsWith('desk:') ? `data-dkgo="${r.go.slice(5)}"` : `data-ftab="${r.go}"`;
     el.innerHTML = `<header class="dk-top"><div><h2>Producer</h2><p>The whole film at a glance, and the things that could stop the shoot, worst first.</p></div><div class="cs-act"><button class="ib" data-prsave>Save as PDF</button></div></header>
       <div id="pdSheet"><div class="dk-cards">
@@ -158,7 +163,8 @@
     if (i === d.days.length - 1 && i > 0) out.push(['wrap', 'Wrap: the last shot and “That’s a wrap!”', 'Then the whole crew photo']);
     return out;
   };
-  F.desks.push({ id: 'bts', label: 'BTS', who: 'BTS photographer, social', icon: '📸', render(el, d) {
+  F.desks.push({ id: 'bts', group: 'Publicity', label: 'BTS and publicity', who: 'BTS, social, marketing', icon: '📸',
+    status(d) { const B = F.desk(d, 'bts', {}); return { ready: null, note: `${(B.media || []).length} photos and clips · ${(B.posts || []).filter(x => x.st === 'Posted').length} posted` }; }, render(el, d) {
     const B = F.desk(d, 'bts', {}), ui = this.ui = this.ui || {};
     if (!ui.day || !d.days.find(x => x.id === ui.day)) ui.day = firstDay(d);
     const day = d.days.find(x => x.id === ui.day), done = (B.done || {})[ui.day] || {}, own = (B.items || []).filter(x => x.day === ui.day), media = B.media || [];

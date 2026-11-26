@@ -37,7 +37,7 @@
       ws = document.createElement('div'); ws.className = 'fws'; ws.setAttribute('role', 'dialog'); ws.setAttribute('aria-label', 'Film workspace');
       document.body.append(ws); document.body.classList.add('filming');
       ws.addEventListener('click', e => { const t = e.target.closest('[data-ftab]'); if (t) { tab = t.dataset.ftab; F.refresh(); }
-        const st = e.target.closest('[data-fstage]'); if (st) { const k = st.dataset.fstage; const first = F.tabs.find(x => F.stageOf(x.id) === k); tab = lastIn[k] || (k === 'shoot' ? 'set' : first && first.id) || tab; F.refresh(); }
+        const st = e.target.closest('[data-fstage]'); if (st) { const k = st.dataset.fstage; curStage = k; const first = F.tabs.find(x => F.stageOf(x.id) === k); tab = lastIn[k] || (k === 'shoot' ? 'set' : first && first.id) || tab; F.refresh(); }
         if (e.target.closest('#fTour')) N.tour();
         if (e.target.closest('#fwsClose')) F.close(); });
     }
@@ -51,14 +51,17 @@
   N.hooks.render.push(() => { if (!ws) return; const d = F.data(); if (!d) return; const snap = JSON.stringify(d); if (snap === lastSnap) return; if (N.isEditing() && ws.contains(document.activeElement)) return; lastSnap = snap; F.refresh(); });
   // the film's tools, grouped by stage of the film
   const STAGES = [['prep', 'Prep'], ['shoot', 'Shoot'], ['post', 'Post']];
-  const STAGE_OF = { script: 'prep', lined: 'prep', breakdown: 'prep', shots: 'prep', schedule: 'prep', budget: 'prep', people: 'prep', casting: 'prep', locations: 'prep', callsheets: 'shoot', weather: 'shoot', desks: 'shoot', set: 'shoot', takes: 'shoot', camera: 'shoot', reports: 'shoot', post: 'post', fest: 'post' };
-  F.stageOf = id => STAGE_OF[id] || 'prep';
+  const STAGE_OF = { script: 'prep', lined: 'prep', breakdown: 'prep', shots: 'prep', schedule: 'prep', budget: 'prep', people: 'prep', casting: 'prep', locations: 'prep', callsheets: 'shoot', weather: 'shoot', desks: ['prep', 'shoot'], set: 'shoot', takes: 'shoot', camera: 'shoot', reports: 'shoot', post: 'post', fest: 'post' };
+  const stagesOf = id => [].concat(STAGE_OF[id] || 'prep');
+  F.stageOf = id => stagesOf(id)[0];
+  F.inStage = (id, st) => stagesOf(id).includes(st);
+  let curStage = 'prep';
   const lastIn = {};
   F.refresh = () => {
     if (!ws) return; const d = F.data(); if (!d) return F.close();
     const t = F.tabs.find(x => x.id === tab) || F.tabs[0]; tab = t.id;
     const sc = ws.querySelector('.fbody') ? ws.querySelector('.fbody').scrollTop : 0;
-    const stage = F.stageOf(t.id), inStage = F.tabs.filter(x => F.stageOf(x.id) === stage);
+    const stage = F.inStage(t.id, curStage) ? curStage : F.stageOf(t.id), inStage = F.tabs.filter(x => F.inStage(x.id, stage)); curStage = stage;
     lastIn[stage] = t.id;
     ws.innerHTML = `<header class="fhead"><div class="ftitle"><span class="clap">${F.icon}</span><input id="fTitle" value="${esc(d.title)}" aria-label="Film title" ${N.P.canWrite ? '' : 'readonly'}></div>
       <nav class="fstages" aria-label="Stage">${STAGES.map(([k, l]) => `<button data-fstage="${k}" class="${k === stage ? 'on' : ''}" aria-pressed="${k === stage}">${l}</button>`).join('')}</nav>

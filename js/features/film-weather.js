@@ -57,13 +57,16 @@
     }
     const hs = window_(day, w, scenes), wet = hs.filter(h => h.rain >= 50 || h.mm >= 1), storm = hs.filter(h => h.code >= 95), gust = Math.max(0, ...hs.map(h => h.gust || 0)), hot = Math.max(-99, ...hs.map(h => h.feels ?? h.temp)), uv = Math.max(0, ...hs.map(h => h.uv || 0));
     const span = list => !list.length ? '' : list.length === 1 ? `around ${hr(list[0].t)}` : `${hr(list[0].t)}–${hr(list[list.length - 1].t)}`;
-    if (storm.length) out.push({ lvl: 'bad', text: `Thunderstorms likely ${span(storm)}`, hint: ext.length ? 'Stop exterior work and keep lights, stands and power cables away from rain and open ground. Have a safe indoor place for everyone.' : 'Keep the generator and cable runs covered, and plan for slow, wet travel between places.' });
+    if (storm.length) out.push({ lvl: 'bad', crisis: true, text: `Thunderstorms likely ${span(storm)}`, hint: ext.length ? 'Stop exterior work and keep lights, stands and power cables away from rain and open ground. Have a safe indoor place for everyone.' : 'Keep the generator and cable runs covered, and plan for slow, wet travel between places.' });
+    if ((+w.mm || 0) >= 30) out.push({ lvl: 'bad', crisis: true, text: `Very heavy rain, about ${Math.round(w.mm)} mm`, hint: 'Roads and low ground may flood. Plan travel, move gear off the floor, and keep power away from water.' });
     if (wet.length && ext.length) out.push({ lvl: storm.length ? 'warn' : 'bad', text: `Rain likely ${span(wet)} with ${ext.length} exterior scene${ext.length > 1 ? 's' : ''} (${ext.map(s => s.num).join(', ')})`, hint: 'Shoot exteriors before the rain if you can, and keep a cover set ready.' });
     else if (wet.length) out.push({ lvl: 'warn', text: `Rain likely ${span(wet)}`, hint: 'Interiors only today, but plan for wet travel, gear moves and rain on windows in shot.' });
-    if (gust >= 50 && !ext.length) out.push({ lvl: 'warn', text: `Strong gusts up to ${Math.round(gust)} km/h`, hint: 'Secure anything outside: the generator, tents and the van. Wind noise may come through windows.' });
+    if (gust >= 60) out.push({ lvl: 'bad', crisis: true, text: `Dangerous wind, gusts to ${Math.round(gust)} km/h`, hint: 'Take down frames, flags and tents, lower light stands, no drones, and keep people clear of trees and loose roofing.' });
+    else if (gust >= 50 && !ext.length) out.push({ lvl: 'warn', text: `Strong gusts up to ${Math.round(gust)} km/h`, hint: 'Secure anything outside: the generator, tents and the van. Wind noise may come through windows.' });
     else if (gust >= 50) out.push({ lvl: 'bad', text: `Strong gusts up to ${Math.round(gust)} km/h`, hint: 'Sandbag every stand, take down large frames and flags, and use furry windshields on mics. Not safe for drones.' });
     else if (gust >= 30 && ext.length) out.push({ lvl: 'warn', text: `Breezy, gusts up to ${Math.round(gust)} km/h`, hint: 'Sandbag stands and bring wind protection for the mics. Check drone limits.' });
-    if (hot >= 41) out.push({ lvl: 'bad', text: `Very hot: feels like ${Math.round(hot)}°C`, hint: 'Lots of water, shade, cool-down breaks, and keep cameras and batteries out of direct sun.' });
+    if (hot >= 42) out.push({ lvl: 'bad', crisis: true, text: `Extreme heat: feels like ${Math.round(hot)}°C`, hint: 'Shorter takes, shade for everyone, water and oral rehydration salts, and a medic or first aider on set. Watch for dizziness and headaches.' });
+    else if (hot >= 38) out.push({ lvl: 'bad', text: `Very hot: feels like ${Math.round(hot)}°C`, hint: 'Lots of water, shade, cool-down breaks, and keep cameras and batteries out of direct sun.' });
     else if (hot >= 36) out.push({ lvl: 'warn', text: `Hot: feels like ${Math.round(hot)}°C`, hint: 'Extra water and shade for cast and crew.' });
     if (hot <= 3) out.push({ lvl: 'warn', text: `Cold: feels like ${Math.round(hot)}°C`, hint: 'Warm layers and hot drinks; batteries drain faster in the cold.' });
     if (uv >= 8 && ext.length) out.push({ lvl: 'warn', text: `Very high sun (UV ${Math.round(uv)})`, hint: 'Sunscreen and hats. Harsh overhead light at midday: plan diffusion or shoot the wide shots early.' });
@@ -97,6 +100,7 @@
       if (fail && !n && force) N.toast('Couldn’t reach the weather service. Check your internet.');
     } finally { busy = false; }
     if (n) alertCheck();
+    if (n && F.pushSync) F.pushSync();
     return n;
   };
 
@@ -123,12 +127,13 @@
         ${alerts}${cv ? `<div class="wx-cover"><span>Cover set: Day ${days.indexOf(cv.x) + 1} is all interiors (${cv.ss.map(s => s.num).join(', ')}).</span>${N.P.canWrite ? `<button class="ib" data-wxswap="${esc(day.id)}" data-with="${esc(cv.x.id)}">Swap the scenes of these two days</button>` : ''}</div>` : ''}
         <p class="wx-at">Updated ${esc(new Date(w.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }))} · times are local to the location${w.tz ? ` (${esc(w.tz)})` : ''}</p></article>`;
     }).join('');
-    el.innerHTML = `<div class="fwrap wide wx"><div class="rp-bar"><p class="fhint">Forecasts appear 16 days before each shoot day and update every few hours while Itàn is open. Itàn checks the scenes, so alerts are about what matters for that day.</p>
-      <div class="cs-act"><button class="ib" id="wxNotify">${typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'Alerts on ✓' : 'Alert me on this device'}</button><button class="pri" id="wxNow">Check now</button></div></div><div class="wx-grid">${cards}</div></div>`;
+    el.innerHTML = `<div class="fwrap wide wx"><div class="rp-bar"><p class="fhint">Forecasts appear 16 days before each shoot day. Turn on alerts and Itàn checks every 3 hours, even when it’s closed, and warns this phone about a weather crisis or rain on an outdoor day. Ask everyone on the team to turn them on.</p>
+      <div class="cs-act"><button class="ib" id="wxNotify">${F.pushOn && F.pushOn() ? '🔔 Alerts on (turn off)' : '🔔 Alert me on this phone'}</button>${F.alertCrew ? '<button class="ib" id="wxCrew">Alert the crew</button>' : ''}<button class="pri" id="wxNow">Check now</button></div></div><div class="wx-grid">${cards}</div></div>`;
     el.onclick = async e => {
       const t = e.target;
       if (t.closest('#wxNow')) { N.status('Checking the weather…'); const n = await F.refreshWeather(true); N.settled(); if (!n) N.toast(navigator.onLine ? 'No days to check. Add dates and a location.' : 'You’re offline'); F.refresh(); return; }
-      if (t.closest('#wxNotify')) { if (typeof Notification === 'undefined') return N.toast('This browser can’t show alerts. Itàn will still show them when you open it.'); const p = await Notification.requestPermission(); N.toast(p === 'granted' ? 'Itàn will alert you about bad weather for the next few shoot days' : 'Alerts stay inside Itàn'); F.refresh(); return; }
+      if (t.closest('#wxNotify')) { if (F.pushOn && F.pushOn()) await F.pushDisable(); else if (F.pushEnable) await F.pushEnable(); F.refresh(); return; }
+      if (t.closest('#wxCrew')) return F.alertCrew('');
       const pl = t.closest('[data-wxplace]'); if (pl && F.fillSunWeather) { await F.fillSunWeather(pl.dataset.wxplace, true); await F.refreshWeather(true); F.refresh(); return; }
       const sw = t.closest('[data-wxswap]'); if (sw) {
         const a = d.days.find(x => x.id === sw.dataset.wxswap), b = d.days.find(x => x.id === sw.dataset.with);
@@ -148,6 +153,7 @@
   function alertCheck() {
     const d = F.data(); if (!d) return; const list = upcoming(d); let bar = document.querySelector('.wx-banner');
     if (!list.length) { if (bar) bar.remove(); return; }
+    if (F.crisisCheck) F.crisisCheck(list);
     const top = list[0], when = top.away === 0 ? 'Today' : top.away === 1 ? 'Tomorrow' : new Date(top.day.date + 'T00:00:00').toLocaleDateString([], { weekday: 'long' }), worst = top.al.find(a => a.lvl === 'bad') || top.al[0];
     const key = 'itan:wxdismiss:' + top.day.id + ':' + worst.text;
     try { if (sessionStorage.getItem(key)) return; } catch (e) {}

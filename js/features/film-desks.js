@@ -19,9 +19,13 @@
   F.daysOfScene = (d, s) => d.days.filter(x => x.sceneIds.includes(s.id));
   F.pickImages = (multiple = true) => new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = multiple; i.onchange = async () => { const ids = []; for (const f of i.files) ids.push(await N.Store.putMedia(f)); res(ids); }; i.click(); });
 
-  F.tabs.push({ id: 'desks', label: 'Departments', order: 36, render(el, d) {
+  // departments, in the order a film is usually organised
+  F.DESK_GROUPS = ['Direction', 'Production', 'Camera and light', 'Art and look', 'Sound', 'Safety and logistics', 'Post', 'Publicity'];
+  F.deskAlerts = d => F.desks.flatMap(x => { try { return (x.alerts ? x.alerts(d) : []).map(a => ({ ...a, desk: x.id, label: x.label, icon: x.icon })); } catch (e) { return []; } });
+  F.tabs.push({ id: 'desks', label: 'Departments', order: 2, render(el, d) {
     const desk = F.desks.find(x => x.id === cur) || F.desks[0]; cur = desk.id;
-    el.innerHTML = `<div class="fwrap wide dk"><nav class="dk-nav" aria-label="Departments">${F.desks.map(x => `<button data-desk="${x.id}" class="${x.id === cur ? 'on' : ''}"><span class="dk-ic" aria-hidden="true">${x.icon}</span><span><b>${esc(x.label)}</b><small>${esc(x.who)}</small></span></button>`).join('')}</nav>
+    const all = F.deskAlerts(d), count = id => all.filter(a => a.desk === id && a.lvl === 'bad').length;
+    el.innerHTML = `<div class="fwrap wide dk"><nav class="dk-nav" aria-label="Departments">${F.DESK_GROUPS.map(g => { const ds = F.desks.filter(x => (x.group || 'Production') === g); return ds.length ? `<h5>${esc(g)}</h5>${ds.map(x => `<button data-desk="${x.id}" class="${x.id === cur ? 'on' : ''}"><span class="dk-ic" aria-hidden="true">${x.icon}</span><span><b>${esc(x.label)}</b><small>${esc(x.who)}</small></span>${count(x.id) ? `<em class="dk-n" title="Needs attention">${count(x.id)}</em>` : ''}</button>`).join('')}` : ''; }).join('')}</nav>
       <section class="dk-body" data-desk-body="${desk.id}"></section></div>`;
     const body = el.querySelector('.dk-body');
     el.onclick = e => { const b = e.target.closest('[data-desk]'); if (b) { cur = b.dataset.desk; try { localStorage.setItem('itan:desk', cur); } catch (er) {} F.refresh(); } };
@@ -40,7 +44,9 @@
     const gear = {}; F.dayScenes(d, day).forEach(s => ((sc[s.id] || {}).fixtures || []).forEach(f => { gear[f.name] = Math.max(gear[f.name] || 0, num(f.qty) || 1); }));
     return { per, base, peak, gear };
   };
-  F.desks.push({ id: 'light', label: 'Lighting and power', who: 'Gaffer, DP, sparks', icon: '💡', render(el, d) {
+  F.desks.push({ id: 'light', group: 'Camera and light', label: 'Lighting and power', who: 'Gaffer, electric dept', icon: '💡',
+    status(d) { const L = F.desk(d, 'light', {}), sc = L.scenes || {}, n = d.scenes.filter(s => ((sc[s.id] || {}).fixtures || []).length).length; return { ready: d.scenes.length ? n / d.scenes.length : null, note: `${n} of ${d.scenes.length} scenes lit` }; },
+    alerts(d) { const L = F.desk(d, 'light', {}), have = num(L.kva); return have && (L.supply || 'gen') === 'gen' ? F.nextDays(d, 7).filter(x => F.lightLoad(d, x).peak * 1.25 / 0.8 / 1000 > have).map(x => ({ lvl: 'bad', text: `${F.dayLabel(d, x)} needs more power than your ${have} kVA generator` })) : []; }, render(el, d) {
     const L = F.desk(d, 'light', {}), sc = L.scenes || {}, volts = num(L.volts) || 230, supply = L.supply || 'gen';
     const ui = this.ui = this.ui || { scene: null, day: null };
     const scenes = F.sortScenes(d); if (!ui.scene || !scenes.find(s => s.id === ui.scene)) ui.scene = scenes[0] && scenes[0].id;
@@ -94,7 +100,8 @@
   } });
 
   /* ================= CONTINUITY (script supervisor, wardrobe, hair and makeup) ================= */
-  F.desks.push({ id: 'cont', label: 'Continuity', who: 'Script supervisor, wardrobe, HMU', icon: '🧷', render(el, d) {
+  F.desks.push({ id: 'cont', group: 'Direction', label: 'Continuity', who: 'Script supervisor', icon: '🧷',
+    status(d) { const looks = F.desk(d, 'cont', {}).looks || {}, pairs = d.scenes.flatMap(s => (s.cast || []).map(id => s.id + ':' + id)), n = pairs.filter(k => looks[k] && Object.keys(looks[k]).some(f => looks[k][f] && (f !== 'photos' || looks[k][f].length))).length; return { ready: pairs.length ? n / pairs.length : null, note: `${n} of ${pairs.length} looks recorded` }; }, render(el, d) {
     const C = F.desk(d, 'cont', {}), looks = C.looks || {}, sd = C.storyDay || {};
     const ui = this.ui = this.ui || { scene: null };
     const scenes = F.sortScenes(d); if (!ui.scene || !scenes.find(s => s.id === ui.scene)) ui.scene = scenes[0] && scenes[0].id;
@@ -152,7 +159,10 @@
   const PSRC = ['Have it', 'Buy', 'Rent', 'Borrow', 'Make'];
   const key = s => String(s || '').trim().toLowerCase();
   F.propScenes = (d, name) => d.scenes.filter(s => ((s.tags && s.tags.props) || []).some(w => key(w) === key(name)));
-  F.desks.push({ id: 'props', label: 'Props', who: 'Props master, art dept', icon: '🎒', render(el, d) {
+  F.desks.push({ id: 'props', group: 'Art and look', label: 'Props', who: 'Props master', icon: '🎒',
+    status(d) { const it = F.desk(d, 'props', {}).items || []; return { ready: it.length ? it.filter(x => ['ready', 'set', 'back'].includes(x.status)).length / it.length : null, note: `${it.filter(x => ['ready', 'set', 'back'].includes(x.status)).length} of ${it.length} props ready` }; },
+    alerts(d) { const it = F.desk(d, 'props', {}).items || [], soon = F.nextDays(d, 3).flatMap(x => F.dayScenes(d, x)), late = it.filter(x => ['need', 'src'].includes(x.status || 'need') && F.propScenes(d, x.name).some(s => soon.includes(s))), od = it.filter(x => x.ret && x.ret < N.todayStr(0) && !['back', 'lost'].includes(x.status) && ['Rent', 'Borrow'].includes(x.src));
+      return [...(late.length ? [{ lvl: 'bad', text: `Props not ready for the next 3 days: ${late.map(x => x.name).join(', ')}` }] : []), ...(od.length ? [{ lvl: 'warn', text: `Props past their return date: ${od.map(x => x.name).join(', ')}` }] : [])]; }, render(el, d) {
     const P = F.desk(d, 'props', {}), items = P.items || [], cur = (d.budget && d.budget.cur) || '₦';
     const ui = this.ui = this.ui || { day: '*' };
     const fromScript = [...new Map(d.scenes.flatMap(s => (s.tags && s.tags.props) || []).map(w => [key(w), w])).values()].filter(w => !items.some(x => key(x.name) === key(w)));

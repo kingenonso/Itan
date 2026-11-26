@@ -31,7 +31,7 @@
           <div class="cs-grid">
             <div><small>Location</small><p>${esc(day.address || locs.join(', ') || '—')}</p></div>
             <div><small>Parking</small><p>${esc(day.parking || '—')}</p></div>
-            <div><small>Nearest hospital</small><p>${esc(day.hospital || '—')}</p></div>
+            <div><small>Nearest hospital</small><p>${esc(day.hospital || (F.desk && F.desk(d, 'safety', {}).hospital) || '—')}</p></div>
             <div><small>Weather</small><p>${esc(day.weather || '—')}</p>${F.weatherAlerts && day.wx ? F.weatherAlerts(d, day, day.wx).filter(a => a.lvl !== 'info').map(a => `<p class="cs-wxal ${a.lvl}">⚠ ${esc(a.text)}. ${esc(a.hint)}</p>`).join('') : ''}</div>
             ${day.sunset ? `<div class="cs-sun"><small>Sun</small><p>${esc(day.sunset)}</p></div>` : ''}
             <div><small>Producer</small><p>${esc(d.contact || '—')}</p></div>
@@ -43,6 +43,7 @@
           ${cast.length ? `<h3>Cast</h3><table class="ftable"><thead><tr><th>No.</th><th>Character</th><th>Actor</th><th>Call</th><th>Phone</th></tr></thead><tbody>${cast.map(p => `<tr><td>${esc(p.num || '')}</td><td>${esc(p.role || '')}</td><td>${esc(p.name || '')}</td><td><b>${esc(hhmm(day.castCalls[p.id] || day.call))}</b></td><td>${esc(p.phone || '')}</td></tr>`).join('')}</tbody></table>` : ''}
           ${crew.length ? `<h3>Crew</h3><table class="ftable"><thead><tr><th>Job</th><th>Name</th><th>Phone</th></tr></thead><tbody>${crew.map(p => `<tr><td>${esc(p.role || '')}</td><td>${esc(p.name || '')}</td><td>${esc(p.phone || '')}</td></tr>`).join('')}</tbody></table>` : ''}
           ${['props', 'wardrobe', 'makeup', 'vehicles', 'effects', 'extras'].some(k => needs(k).length) ? `<h3>Needed today</h3><div class="cs-needs">${[['props', 'Props'], ['wardrobe', 'Wardrobe'], ['makeup', 'Hair and makeup'], ['vehicles', 'Vehicles'], ['effects', 'Effects'], ['extras', 'Extras']].filter(([k]) => needs(k).length).map(([k, l]) => `<div><small>${l}</small><p>${esc(needs(k).join(', '))}</p></div>`).join('')}</div>` : ''}
+          ${F.callSheetExtras ? F.callSheetExtras(d, day) : ''}
           ${day.notes ? `<h3>Notes</h3><p class="cs-notes">${esc(day.notes)}</p>` : ''}
           <footer>Made with Itàn</footer>
         </div></section></div>`;
