@@ -131,7 +131,7 @@
   });
 
   /* ================= what guests see ================= */
-  async function guest(kind, room, key) {
+  async function guest(kind, room, key, extra) {
     document.body.classList.add('guesting');
     const g = { room, key };
     const el = document.createElement('div'); el.className = 'guest'; document.body.append(el);
@@ -177,7 +177,7 @@
         const o = { kind: 'signup', name: fd.get('name').trim(), job: fd.get('job').trim(), phone: fd.get('phone').trim(), days: fd.getAll('days'), note: fd.get('note').trim() };
         localStorage.setItem('itan:guestName', o.name);
         try { await send(o); body.innerHTML = `<h1>Thanks, ${esc(o.name.split(' ')[0])}!</h1><p>Your details went to the team for “${esc(f.title || 'the film')}”. They’ll be in touch.</p>`; } catch (x) { N.toast('Couldn’t send. Check your internet.'); } };
-    } else if (N.guestPages[kind] && f.kind === kind) { N.guestPages[kind](body, f, g, key, send);
+    } else if (N.guestPages[kind] && f.kind === kind) { N.guestPages[kind](body, f, g, key, send, extra);
     } else body.innerHTML = `<h1>This link isn’t working</h1><p>Ask the person who sent it for a new one.</p>`;
   }
 
@@ -185,8 +185,8 @@
   F.approvalLabel = c => c.approval ? ({ waiting: ' · waiting for approval', approved: ' · approved ✓', changes: ' · changes asked' }[c.approval.status] || '') : '';
 
   N.hooks.ready.push(() => {
-    const h = (N.startHash || location.hash).match(/^#(review|crew|cast)=([A-Za-z0-9_-]{8,64})\.([A-Za-z0-9_-]{8,64})$/);
-    if (h) { guest(h[1], h[2], h[3]); return; }
+    const h = (N.startHash || location.hash).match(/^#(review|crew|cast|read|sign)=([A-Za-z0-9_-]{8,64})\.([A-Za-z0-9_-]{8,64})(?:\.([A-Za-z0-9_-]{4,64}))?$/);
+    if (h) { guest(h[1], h[2], h[3], h[4]); return; }
     setTimeout(syncAll, 3000);
     setInterval(() => { if (!document.hidden) syncAll(); }, 120000);
   });

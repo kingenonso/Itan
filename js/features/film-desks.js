@@ -21,7 +21,7 @@
   F.DESK_GROUPS = ['Direction', 'Production', 'Camera and light', 'Art and look', 'Sound', 'Safety and logistics', 'Post', 'Publicity'];
   F.deskAlerts = d => F.desks.flatMap(x => { try { return (x.alerts ? x.alerts(d) : []).map(a => ({ ...a, desk: x.id, label: x.label, icon: x.icon })); } catch (e) { return []; } });
   // each desk is a tab in the stage where that department does most of its work
-  const DESK_STAGE = { director: 'overview', prod: 'overview', ad: 'plan', art: 'plan', props: 'plan', ward: 'plan', hmu: 'plan', light: 'plan', grip: 'plan', safety: 'plan', transport: 'plan', food: 'plan', cont: 'shoot', dit: 'shoot', sound: 'shoot', bts: 'shoot', vfx: 'post', colour: 'post', music: 'post', legal: 'post' };
+  const DESK_STAGE = { director: 'overview', prod: 'overview', ad: 'plan', art: 'plan', props: 'plan', brands: 'plan', ward: 'plan', hmu: 'plan', light: 'plan', grip: 'plan', safety: 'plan', transport: 'plan', food: 'plan', cont: 'shoot', dit: 'shoot', sound: 'shoot', bts: 'shoot', vfx: 'post', colour: 'post', music: 'post', legal: 'post' };
   F.deskTabs = () => F.desks.forEach((x, i) => {
     if (F.tabs.some(t => t.id === 'dk-' + x.id)) return;
     F.setStage('dk-' + x.id, DESK_STAGE[x.id] || 'plan');
@@ -148,7 +148,7 @@
         return `<tr><td><b>${esc(s.num)}</b>${sd[s.id] ? ' · ' + esc(sd[s.id]) : ''}<br><small>${esc(F.sceneLabel(s))}</small></td><td>${[['Wardrobe', L.ward], ['Hair and makeup', L.hair], ['Props', L.props], ['State', L.state]].filter(x => x[1]).map(([a, b]) => `<b>${a}:</b> ${esc(b)}`).join('<br>') || '—'}</td><td>${(L.photos || []).slice(0, 3).map(m => `<img data-media="${esc(m)}" alt="" style="width:110px;height:74px;object-fit:cover;border-radius:4px;margin:2px">`).join('')}</td></tr>`; }).join('')}</tbody></table>`; }).join('');
     document.body.append(host);
     await Promise.all([...host.querySelectorAll('img[data-media]')].map(async im => { const b = await N.Store.getMedia(im.dataset.media).catch(() => null); if (b) im.src = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); }); else im.remove(); }));
-    try { await N.saveNode(host, `${d.title} continuity`, 'pdf'); } finally { host.remove(); }
+    try { await N.saveNode(host, `${d.title} continuity`, 'pdf', { position: 'static', left: '0', top: '0' }); } finally { host.remove(); }
   }
 
   /* ================= PROPS (props master, art department) ================= */
@@ -156,19 +156,20 @@
   const PSRC = ['Have it', 'Buy', 'Rent', 'Borrow', 'Make'];
   const key = s => String(s || '').trim().toLowerCase();
   F.propScenes = (d, name) => d.scenes.filter(s => ((s.tags && s.tags.props) || []).some(w => key(w) === key(name)));
+  F.propScenesOf = (d, x) => d.scenes.filter(s => (x.scenes || []).includes(s.id) || ((s.tags && s.tags.props) || []).some(w => key(w) === key(x.name)));
   F.desks.push({ id: 'props', group: 'Art and look', label: 'Props', who: 'Props master', icon: '🎒',
     status(d) { const it = F.desk(d, 'props', {}).items || []; return { ready: it.length ? it.filter(x => ['ready', 'set', 'back'].includes(x.status)).length / it.length : null, note: `${it.filter(x => ['ready', 'set', 'back'].includes(x.status)).length} of ${it.length} props ready` }; },
-    alerts(d) { const it = F.desk(d, 'props', {}).items || [], soon = F.nextDays(d, 3).flatMap(x => F.dayScenes(d, x)), late = it.filter(x => ['need', 'src'].includes(x.status || 'need') && F.propScenes(d, x.name).some(s => soon.includes(s))), od = it.filter(x => x.ret && x.ret < N.todayStr(0) && !['back', 'lost'].includes(x.status) && ['Rent', 'Borrow'].includes(x.src));
+    alerts(d) { const it = F.desk(d, 'props', {}).items || [], soon = F.nextDays(d, 3).flatMap(x => F.dayScenes(d, x)), late = it.filter(x => ['need', 'src'].includes(x.status || 'need') && F.propScenesOf(d, x).some(s => soon.includes(s))), od = it.filter(x => x.ret && x.ret < N.todayStr(0) && !['back', 'lost'].includes(x.status) && ['Rent', 'Borrow'].includes(x.src));
       return [...(late.length ? [{ lvl: 'bad', text: `Props not ready for the next 3 days: ${late.map(x => x.name).join(', ')}` }] : []), ...(od.length ? [{ lvl: 'warn', text: `Props past their return date: ${od.map(x => x.name).join(', ')}` }] : [])]; }, render(el, d) {
     const P = F.desk(d, 'props', {}), items = P.items || [], cur = (d.budget && d.budget.cur) || '₦';
     const ui = this.ui = this.ui || { day: '*' };
     const fromScript = [...new Map(d.scenes.flatMap(s => (s.tags && s.tags.props) || []).map(w => [key(w), w])).values()].filter(w => !items.some(x => key(x.name) === key(w)));
     const day = d.days.find(x => x.id === ui.day), dayScenes = day ? F.dayScenes(d, day) : null;
     const shown = items.filter(x => !dayScenes || F.propScenes(d, x.name).some(s => dayScenes.includes(s)) || (x.scenes || []).some(id => dayScenes.some(s => s.id === id)));
-    const soon = F.nextDays(d, 3).flatMap(x => F.dayScenes(d, x)), late = items.filter(x => ['need', 'src'].includes(x.status || 'need') && F.propScenes(d, x.name).some(s => soon.includes(s)));
+    const soon = F.nextDays(d, 3).flatMap(x => F.dayScenes(d, x)), late = items.filter(x => ['need', 'src'].includes(x.status || 'need') && F.propScenesOf(d, x).some(s => soon.includes(s)));
     const overdue = items.filter(x => x.ret && x.ret < N.todayStr(0) && !['back', 'have', 'lost'].includes(x.status) && x.src !== 'Have it' && x.src !== 'Buy' && x.src !== 'Make');
     const total = items.reduce((n, x) => n + num(x.cost), 0);
-    const row = x => { const sc = F.propScenes(d, x.name); return `<tr data-pr="${esc(x.id)}" class="st-${x.status || 'need'}">
+    const row = x => { const sc = F.propScenesOf(d, x); return `<tr data-pr="${esc(x.id)}" class="st-${x.status || 'need'}">
       <td>${x.photo ? `<img data-media="${esc(x.photo)}" alt="" class="dk-thumb" data-prph>` : `<button class="dk-thumb ph" data-prph aria-label="Add a photo">+</button>`}</td>
       <td><input data-pk="name" value="${esc(x.name)}"><small>${sc.length ? 'Scenes ' + sc.map(s => esc(s.num)).join(', ') : 'Not in the script'}${x.hero ? ' · hero' : ''}</small></td>
       <td><select data-pk="status">${PSTAT.map(([k, l]) => `<option value="${k}"${(x.status || 'need') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
