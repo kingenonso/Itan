@@ -17,7 +17,7 @@
       if (l.t === 'scene') { n++; scene = String(n); speaker = null; out.push({ t: 'scene', x, scene }); return; }
       if (l.t === 'char') { speaker = who(x); return; }
       if (l.t === 'paren') { out.push({ t: 'paren', x, scene, char: speaker }); return; }
-      if (l.t === 'dial' && speaker) { const base = speaker + '|' + x; seen[base] = (seen[base] || 0) + 1; out.push({ t: 'dial', x, scene, char: speaker, k: 'l' + hash(base + '#' + seen[base]) }); return; }
+      if (l.t === 'dial' && speaker) { const base = speaker + '|' + x; seen[base] = (seen[base] || 0) + 1; out.push({ t: 'dial', x, scene, char: speaker, id: l.id, k: 'l' + hash(base + '#' + seen[base]) }); return; }
       speaker = null; out.push({ t: l.t === 'trans' ? 'trans' : 'action', x, scene });
     });
     return out;
@@ -27,6 +27,7 @@
   const takeOf = (d, k) => { const tr = T(d), list = (tr.takes || {})[k] || []; return list[Math.min(list.length - 1, tr.pick && tr.pick[k] != null ? tr.pick[k] : list.length - 1)]; };
   const srcOf = async (d, tk) => tk.local ? N.Store.mediaUrl(tk.media) : `${K().API}/rooms/${T(d).link.room}/media/${tk.media}?key=${encodeURIComponent(T(d).link.key)}`;
 
+  F.readTake = (d, k) => takeOf(d, k); F.readSrc = (d, tk) => srcOf(d, tk);
   async function sync(quiet = true) {
     const d = F.data(); if (!d || !T(d).link || !K()) return 0; const g = T(d).link;
     try { const r = await K().api(g, `feedback?after=${g.seen || 0}`); if (!r.ok) return 0; const items = (await r.json()).items; if (!items.length) return 0;
