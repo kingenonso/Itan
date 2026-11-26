@@ -1,9 +1,11 @@
 # Builds the Notera desktop apps and attaches them to a GitHub Release.
-# Runs when a version tag like v1.0.1 is pushed, or by hand from the Actions tab.
+# Runs when the release branch is updated, when a version tag like v1.0.1 is pushed,
+# or by hand from the Actions tab. The version comes from src-tauri/tauri.conf.json.
 name: Desktop apps
 
 on:
   push:
+    branches: [release]
     tags: ['v*']
   workflow_dispatch:
 
