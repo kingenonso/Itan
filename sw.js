@@ -1,5 +1,5 @@
 // Lets Notera open without internet after the first visit. Bump VERSION when you change app files.
-const VERSION = 'notera-v6';
+const VERSION = 'notera-v7';
 const FILES = ['./', 'index.html', 'css/app.css', 'js/config.js', 'js/storage-local.js', 'js/app.js', 'js/features/core.js', 'js/features/today.js', 'js/features/share.js', 'js/features/walk.js', 'js/features/transcribe.js', 'js/features/history.js', 'js/features/lock.js', 'js/features/tidy.js', 'js/features/templates.js', 'js/features/export.js', 'js/features/install.js', 'manifest.json', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== 'notera-inbox').map(k => caches.delete(k)))).then(() => self.clients.claim())); });
