@@ -58,7 +58,7 @@ jobs:
             Download Itàn for your computer:
             - **Windows:** the `.msi` or `-setup.exe` file. If Windows shows "Windows protected your PC", click **More info → Run anyway**.
             - **Mac (Apple silicon and Intel):** the `.dmg` file. Open it and drag Itàn to Applications. The first time, right-click Itàn → **Open**, or go to System Settings → Privacy & Security → **Open Anyway**.
-            - **Linux:** the `.AppImage`, `.deb` or `.rpm` file.
+            - **Linux:** the `.AppImage` or `.deb` file.
 
             Phones: open the web app and tap **Get the app**.
           releaseDraft: false
