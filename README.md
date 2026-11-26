@@ -36,6 +36,9 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 - **Present mode** (P). A slideshow that glides from card to card in reading order.
 - **Voice to text.** Optional, on the device: voice notes, board explanations and walkthroughs get written out and become searchable. Needs a one-time download of about 80 MB, then works offline.
 
+**Work together live**
+- **Live**: tap Live on any board to share it and everything inside it. You get an edit link and a view link to send on WhatsApp. Everyone sees changes as they happen, sees who's online and which board they're on, and pictures and videos (up to 95 MB each) are shared too. Each person keeps a full copy, so it works offline and catches up later. It runs free on Cloudflare (the `server/` folder, deployed by the Live server GitHub Action using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets).
+
 **Made for planning films**
 - **Film production template**: one tap builds pre-production, production and post-production boards for a whole film.
 - **Script writing**: a screenplay editor that formats as you type (Enter moves to the next element, Tab changes it). Save as a proper screenplay PDF or a Fountain file, and send it straight to the breakdown.
@@ -73,6 +76,7 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 | `js/config.js` | App name and which storage to use (`local` today) |
 | `js/storage-local.js` | Saves boards and media on the user's device (IndexedDB) |
 | `js/app.js` | The board app itself |
+| `js/features/live.js`, `server/` | Live teamwork: the app side and the free Cloudflare server |
 | `js/features/film-*.js`, `css/film.css` | Film workspace: script, breakdown, smart tags, schedule, call sheets, shots, budget, reports, people, review notes |
 | `js/features/` | Today, sharing, walkthroughs and Present, voice to text, history, PIN lock, tidy, templates, export |
 | `sw.js` | Offline support |
