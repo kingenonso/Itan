@@ -4,6 +4,20 @@ Free visual boards for notes, to-do lists, links, pictures, videos and plans, in
 
 **Live app:** https://kingenonso.github.io/notera/ (after GitHub Pages is switched on, see below)
 
+## Get Notera
+
+| Device | How |
+|---|---|
+| **iPhone / iPad** | Open the web app in Safari → **Get the app** → Share → **Add to Home Screen** |
+| **Android** | Open the web app in Chrome → **Get the app** → **Install** |
+| **Windows** | Download the installer from [Releases](https://github.com/kingenonso/notera/releases/latest), or install from Edge or Chrome |
+| **Mac** | Download the `.dmg` from [Releases](https://github.com/kingenonso/notera/releases/latest), or in Safari choose File → Add to Dock |
+| **Linux** | `.AppImage`, `.deb` or `.rpm` from [Releases](https://github.com/kingenonso/notera/releases/latest) |
+
+The desktop installers aren't signed yet, so Windows and Mac ask you to confirm the first time (Windows: **More info → Run anyway**; Mac: right-click → **Open**). App store listings are explained in [STORES.md](STORES.md).
+
+Each device and each way of opening Notera keeps its own boards. To move boards between them, use **Share → Download everything** on one and **Open a board file** on the other.
+
 ## Why it's free and close to unlimited
 
 Like a Word document, everything you make in Notera is saved **on your own device**, inside the browser's storage. Nothing is uploaded to a server, so:
@@ -50,6 +64,8 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 | `js/features/` | Today, sharing, walkthroughs and Present, voice to text, history, PIN lock, tidy, templates, export |
 | `sw.js` | Offline support |
 | `manifest.json`, `icons/` | Install as an app |
+| `src-tauri/` | Desktop app for Windows, Mac and Linux (Tauri) |
+| `.github/workflows/desktop.yml` | Builds the desktop installers on GitHub |
 
 ## Run it on your computer
 
