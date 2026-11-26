@@ -96,7 +96,7 @@ function starter(){
  const mk=(id,title,parent,cards,links=[])=>S.boards[id]=normalize({id,title,parent,cards,links,created:Date.now()});
  mk('home','Home',null,[
   {id:uid(),type:'heading',x:60,y:40,w:460,text:'Start here'},
-  {id:n1,type:'note',x:60,y:118,w:300,color:'#f39a1e',text:'Drag anything from the toolbar onto the board, then click it to type.\n\nBoards hold other boards: make as many as you like, as deep as you like.\n\n(This starter board is an example. Edit or delete anything.)'},
+  {id:n1,type:'note',x:60,y:118,w:300,color:'#f39a1e',text:'Pick anything from the dock at the bottom, or double-click an empty spot, then click it to type.\n\nBoards hold other boards: make as many as you like, as deep as you like.\n\n(This starter board is an example. Edit or delete anything.)'},
   {id:bm,type:'board',x:410,y:118,w:170,board:mood,color:'#e0508f'},
   {id:uid(),type:'board',x:600,y:118,w:170,board:plan,color:'#4b6bff'},
   {id:uid(),type:'todo',x:410,y:330,w:330,text:'Things to try',items:[{t:'Paste a link, some text, a picture or a video',d:false},{t:'Drop a card onto a board to move it inside',d:false},{t:'Drag a card into a column, or back out',d:false},{t:'Pick Line, then click two cards to connect them',d:false},{t:'Press Ctrl+K to search every board',d:false}]},
@@ -120,7 +120,7 @@ function starter(){
 const B=()=>S.boards[S.cur];
 const find=id=>B().cards.find(c=>c.id==id);
 const el=id=>world.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
-const V=()=>S.view[S.cur]||(S.view[S.cur]={x:40,y:30,z:1});
+const V=()=>S.view[S.cur]||(S.view[S.cur]={x:40,y:90,z:1});
 const isEditing=()=>{const a=document.activeElement;return!!a&&(a.isContentEditable||/INPUT|TEXTAREA/.test(a.tagName))};
 const snapState=()=>({docs:Object.fromEntries([...docsOf(S.boards)].map(([k,v])=>[k,stable(v)])),t:Date.now()});
 function pushUndo(st){S.undo.push(st);if(S.undo.length>60)S.undo.shift();S.redo=[]}
@@ -145,19 +145,27 @@ function inner(c){
   return `<div class="lk"><span class="fav">${esc((host[0]||'?').toUpperCase())}</span><div class="lkm">${ed('text',c.text,host||'Link title','txt lt')}<span class="host">${esc(host||c.url)}</span></div>${/^https:\/\//i.test(c.url)?`<a class="open" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open link">↗</a>`:''}</div>`}
  case 'image':case 'video':case 'audio':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap');
  case 'board':{const b=S.boards[c.board];const n=b?b.cards.filter(x=>!x.col).length:0;
-  return `<button class="bic" data-act="open" aria-label="Open board"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></button>`+(b?ed('btitle',b.title,'Untitled board','txt bt'):'<div class="bt">Missing board</div>')+`<div class="sub">${n} card${n==1?'':'s'}${b&&b.voice?' · <span class="vb" title="Has a voice explanation">voice explanation</span>':''}</div>`}
+  return `<button class="bic" data-act="open" aria-label="Open board">${preview(b)}<span class="door"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span></button>`+(b?ed('btitle',b.title,'Untitled board','txt bt'):'<div class="bt">Missing board</div>')+`<div class="sub">${n} card${n==1?'':'s'}${b&&b.voice?' · <span class="vb" title="Has a voice explanation">voice explanation</span>':''}</div>`}
  case 'column':{const kids=c.items.map(id=>find(id)).filter(Boolean);return ed('text',c.text,'Column title','txt ct')+`<div class="colb" data-col="${esc(c.id)}">${kids.map(k=>cardHTML(k,true)).join('')||'<div class="empty">Drop cards here</div>'}</div>`}
  case 'swatch':{const h=okc(c.hex)||'#737a84';return `<label class="sw" style="background:${h}"><input type="color" value="${h}" data-act="hex" aria-label="Pick colour"${P.canWrite?'':' disabled'}></label>`+ed('text',c.text,h,'txt cap')}}}
-function cardHTML(c,inCol){const cl=okc(c.color);const strip=cl&&!['board','swatch','heading'].includes(c.type);
- return `<div class="card t-${c.type}${S.sel.has(c.id)?' sel':''}${inCol?' inc':''}" data-id="${esc(c.id)}" style="${inCol?'':`left:${c.x}px;top:${c.y}px;width:${c.w}px;`}${cl?`--c:${cl};`:c.type=='board'?'--c:#737a84;':''}">${strip?'<i class="strip"></i>':''}${inner(c)}${inCol?'':'<span class="rs" data-act="rs"></span>'}</div>`}
+const EH={note:72,heading:34,todo:120,link:66,image:160,video:210,audio:84,board:170,swatch:136};
+function preview(b){if(!b)return '';const cs=b.cards.filter(c=>!c.col).slice(0,80);
+ if(!cs.length)return '<svg viewBox="0 0 160 110"><rect class="emptymini" x="58" y="38" width="44" height="34" rx="7" opacity=".55"/></svg>';
+ const rs=cs.map(c=>({x:c.x,y:c.y,w:c.w||200,h:c.type=='column'?60+(c.items||[]).length*70:(EH[c.type]||80),t:c.type,k:!!okc(c.color)}));
+ const x0=Math.min(...rs.map(r=>r.x)),y0=Math.min(...rs.map(r=>r.y)),x1=Math.max(...rs.map(r=>r.x+r.w)),y1=Math.max(...rs.map(r=>r.y+r.h));
+ const s=Math.min(136/(x1-x0||1),88/(y1-y0||1),.5),ox=(160-(x1-x0)*s)/2,oy=(110-(y1-y0)*s)/2;
+ return '<svg viewBox="0 0 160 110">'+rs.map(r=>{const h=r.t=='heading'?Math.max(3,r.h*s*.5):Math.max(3,r.h*s);return `<rect class="mini${r.t=='heading'?' h':r.t=='board'?' b':r.k?' k':''}" x="${(ox+(r.x-x0)*s).toFixed(1)}" y="${(oy+(r.y-y0)*s).toFixed(1)}" width="${Math.max(4,r.w*s).toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(3,h/2).toFixed(1)}"/>`}).join('')+'</svg>'}
+function cardHTML(c,inCol,idx){const cl=okc(c.color);const strip=cl&&!['board','swatch','heading'].includes(c.type);
+ return `<div class="card t-${c.type}${S.sel.has(c.id)?' sel':''}${S.popId===c.id?' pop':''}${inCol?' inc':''}" data-id="${esc(c.id)}" style="${inCol?'':`left:${c.x}px;top:${c.y}px;width:${c.w}px;--i:${Math.min(idx||0,24)};`}${cl?`--c:${cl};`:c.type=='board'?'--c:#737a84;':''}">${strip?'<i class="strip"></i>':''}${inner(c)}${inCol?'':'<span class="rs" data-act="rs"></span>'}</div>`}
 function render(){S.needRender=false;const b=B();if(!b)return;world.querySelectorAll(':scope>.card').forEach(e=>e.remove());
- world.insertAdjacentHTML('beforeend',b.cards.filter(c=>!c.col||!find(c.col)).map(c=>cardHTML(c)).join(''));
+ world.insertAdjacentHTML('beforeend',b.cards.filter(c=>!c.col||!find(c.col)).map((c,i)=>cardHTML(c,false,i)).join(''));S.popId=null;
+ if(S.entering){S.entering=false;world.classList.remove('enter');void world.offsetWidth;world.classList.add('enter');clearTimeout(S.enterT);S.enterT=setTimeout(()=>world.classList.remove('enter'),1400)}
  $('#empty').hidden=b.cards.length>0;crumbs();explainBar();applyView();drawLinks();buildCtx();stats();setMode()}
 function applyView(){const v=V();world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.z})`;canvas.style.backgroundPosition=`${v.x}px ${v.y}px`;canvas.style.backgroundSize=`${24*v.z}px ${24*v.z}px`;$('#zl').textContent=Math.round(v.z*100)+'%';placeCtx()}
 function edge(a,b){const ax=a.x+a.w/2,ay=a.y+a.h/2,dx=b.x+b.w/2-ax,dy=b.y+b.h/2-ay;if(!dx&&!dy)return[ax,ay];const s=Math.min(dx?Math.abs((a.w/2+7)/dx):1e9,dy?Math.abs((a.h/2+7)/dy):1e9);return[ax+dx*s,ay+dy*s]}
 function drawLinks(){const b=B();if(!b)return;svg.innerHTML=`<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs><g transform="translate(20000 20000)">`+b.links.map(l=>{const A=wrect(l.from),Z=wrect(l.to);if(!A||!Z)return'';const[x1,y1]=edge(A,Z),[x2,y2]=edge(Z,A),d=`M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`;return `<g class="${S.selLink==l.id?'sel':''}" data-link="${esc(l.id)}"><path class="hit" d="${d}"/><path class="vis" d="${d}" marker-end="url(#ah)"/></g>`}).join('')+'</g>'}
 let lraf;function linksSoon(){cancelAnimationFrame(lraf);lraf=requestAnimationFrame(()=>{drawLinks();placeCtx()})}
-function explainBar(){const b=B(),x=$('#explain');if(!b){x.innerHTML='';return}if(S.playing&&S.playing.board!==b.id)stopExplain();
+function explainBar(){const b=B(),x=$('#explain');queueMicrotask(()=>x.classList.toggle('island',!!x.innerHTML.trim()));if(!b){x.innerHTML='';return}if(S.playing&&S.playing.board!==b.id)stopExplain();
  if(b.voice){const len=b.voiceLen?` · ${Math.floor(b.voiceLen/60)}:${String(b.voiceLen%60).padStart(2,'0')}`:'';const on=S.playing&&S.playing.board===b.id;
   x.innerHTML=`<button class="ib ex on" id="exPlay" title="Listen to the explanation of this board">${on?'<svg viewBox="0 0 24 24"><rect x="7" y="5.5" width="3.5" height="13" rx="1"/><rect x="13.5" y="5.5" width="3.5" height="13" rx="1"/></svg>':'<svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>'}<span class="hide-s">${on?'Pause':'Explanation'}${len}</span></button>`+(P.canWrite?`<button class="ib" id="exMore" aria-label="Explanation options">⋯</button>`:'')}
  else x.innerHTML=P.canWrite?`<button class="ib" id="exRec" title="Record a voice explanation of this board"><svg viewBox="0 0 24 24">${ICON.voice}</svg><span class="hide-s">Explain board</span></button>`:''}
@@ -187,12 +195,29 @@ function setMode(){const m=$('#mode');world.querySelectorAll('.from').forEach(e=
  if(!S.connect){m.hidden=true;return}m.hidden=false;m.textContent=S.connect.from?'Now click the card to connect to · Esc to cancel':'Click the first card · Esc to cancel';if(S.connect.from)el(S.connect.from)?.classList.add('from')}
 
 /* ---------- navigation ---------- */
-function show(id){if(!S.boards[id])id='home';S.cur=id;S.sel.clear();S.selLink=null;S.connect=null;const fresh=!S.view[id];render();if(fresh)fit(1)}
-function openBoard(id){if(!S.boards[id])return toast('That board no longer exists');show(id);try{location.hash=id}catch(e){}}
+function show(id){if(!S.boards[id])id='home';if(id!==S.cur)S.entering=true;S.cur=id;S.sel.clear();S.selLink=null;S.connect=null;const fresh=!S.view[id];render();if(fresh)fit(1)}
+const calm=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+let portalBusy=false;
+function portalAnim(from,to,color,ms,fadeEnd){const d=document.createElement('div');d.className='portal';d.style.background=color;document.body.append(d);
+ const kf=[from,to].map(r=>({left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',borderRadius:r.br+'px',opacity:r.op??1}));
+ const a=d.animate(kf,{duration:ms,easing:'cubic-bezier(.7,0,.2,1)',fill:'forwards'});return a.finished.then(()=>d)}
+async function openBoard(id,after){if(!S.boards[id])return toast('That board no longer exists');if(id===S.cur){after&&after();return}
+ const fin=()=>{try{location.hash=id}catch(e){}after&&after()};
+ if(calm()||portalBusy){show(id);fin();return}
+ portalBusy=true;const full={left:0,top:0,width:innerWidth,height:innerHeight,br:0};
+ try{
+  const door=[...world.querySelectorAll('.card.t-board')].find(e=>{const c=find(e.dataset.id);return c&&c.board===id});
+  if(door){const bic=door.querySelector('.bic'),r=bic.getBoundingClientRect(),col=getComputedStyle(bic).backgroundColor;
+   const d=await portalAnim({left:r.left,top:r.top,width:r.width,height:r.height,br:14},full,col,420);
+   show(id);fin();await d.animate([{opacity:1},{opacity:0}],{duration:320,easing:'ease-out',fill:'forwards'}).finished;d.remove()}
+  else{const prev=S.cur,col=getComputedStyle(canvas).backgroundColor;show(id);fin();
+   let chain=prev,target=null;for(let g=0;g<40&&chain&&!target;g++){const el2=[...world.querySelectorAll('.card.t-board')].find(e=>{const c=find(e.dataset.id);return c&&c.board===chain});if(el2)target=el2.querySelector('.bic');chain=S.boards[chain]&&S.boards[chain].parent}
+   if(target){const r=target.getBoundingClientRect();const d=await portalAnim({...full,op:.9},{left:r.left,top:r.top,width:r.width,height:r.height,br:14,op:0},'color-mix(in srgb, var(--ultra) 18%, '+col+')',420);d.remove()}}
+ }finally{portalBusy=false}}
 addEventListener('hashchange',()=>{const id=location.hash.slice(1)||'home';if(id!==S.cur&&S.boards[id])show(id)});
-function fit(maxZ=1.25){const cs=B().cards.filter(c=>!c.col);const cr=canvas.getBoundingClientRect(),v=V();if(!cs.length){Object.assign(v,{x:40,y:30,z:1});applyView();return}
+function fit(maxZ=1.25){const cs=B().cards.filter(c=>!c.col);const cr=canvas.getBoundingClientRect(),v=V();if(!cs.length){Object.assign(v,{x:40,y:90,z:1});applyView();return}
  const rs=cs.map(c=>wrect(c.id)).filter(Boolean);const x0=Math.min(...rs.map(r=>r.x)),y0=Math.min(...rs.map(r=>r.y)),x1=Math.max(...rs.map(r=>r.x+r.w)),y1=Math.max(...rs.map(r=>r.y+r.h));
- const z=clamp(Math.min((cr.width-80)/(x1-x0||1),(cr.height-80)/(y1-y0||1)),.2,maxZ);v.z=z;v.x=(cr.width-(x1-x0)*z)/2-x0*z;v.y=Math.min(40,(cr.height-(y1-y0)*z)/2)-y0*z;applyView();saveViewSoon()}
+ const top=84,bot=112,avail=Math.max(120,cr.height-top-bot);const z=clamp(Math.min((cr.width-80)/(x1-x0||1),avail/(y1-y0||1)),.2,maxZ);v.z=z;v.x=(cr.width-(x1-x0)*z)/2-x0*z;v.y=top+Math.max(0,Math.min(24,(avail-(y1-y0)*z)/2))-y0*z;applyView();saveViewSoon()}
 function zoomBy(f){const cr=canvas.getBoundingClientRect(),v=V(),mx=cr.width/2,my=cr.height/2,nz=clamp(v.z*f,.2,3);v.x=mx-(mx-v.x)*nz/v.z;v.y=my-(my-v.y)*nz/v.z;v.z=nz;applyView();drawLinks();saveViewSoon()}
 function focusCard(id){const c=find(id);if(!c)return;const host=c.col||id;const r=wrect(host);if(!r)return;const cr=canvas.getBoundingClientRect(),v=V();v.x=cr.width/2-(r.x+r.w/2)*v.z;v.y=cr.height*.4-(r.y+Math.min(r.h,300)/2)*v.z;applyView();S.sel=new Set([id]);refreshSel();const e=el(id);e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');saveViewSoon()}
 
@@ -206,7 +231,7 @@ function newCard(type,x,y,props={}){const c={id:uid(),type,x:Math.round(x),y:Mat
  return c}
 function addCard(type,pt,col,props){if(!P.canWrite)return null;snap();const c=newCard(type,pt.x,pt.y,props);B().cards.push(c);
  if(col){const k=find(col.id);if(k){c.col=k.id;k.items.splice(col.idx,0,c.id)}}
- S.sel=new Set([c.id]);touch();render();
+ S.sel=new Set([c.id]);S.popId=c.id;touch();render();
  if(!props){const f=el(c.id)?.querySelector('[contenteditable],input:not([type=color])');if(f){f.focus();if(type=='board'||type=='column')selectAll(f)}}return c}
 function selectAll(n){const r=document.createRange();r.selectNodeContents(n);const s=getSelection();s.removeAllRanges();s.addRange(r)}
 function caretEnd(n){const r=document.createRange();r.selectNodeContents(n);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)}
@@ -281,7 +306,7 @@ canvas.addEventListener('pointermove',e=>{if(pointers.has(e.pointerId))pointers.
  if(drag.kind=='pan'){const v=V();v.x=drag.v.x+dx;v.y=drag.v.y+dy;applyView();return}
  if(drag.kind=='rs'){const c=find(drag.id);if(!c)return;c.w=Math.max(MINW[c.type],Math.round(drag.w+dx/z));el(c.id).style.width=c.w+'px';linksSoon();return}
  if(drag.kind=='maybe'){if(Math.hypot(dx,dy)<5||!P.canWrite)return;startMove()}
- if(drag.kind=='move'){const wx=dx/z,wy=dy/z;drag.items.forEach(i=>{i.c.x=Math.round(i.x+wx);i.c.y=Math.round(i.y+wy);i.e.style.left=i.c.x+'px';i.e.style.top=i.c.y+'px'});
+ if(drag.kind=='move'){const vx=e.clientX-(drag.lx??e.clientX);drag.lx=e.clientX;drag.tilt=(drag.tilt||0)*.75+clamp(vx*.9,-8,8)*.25;const tl=drag.tilt.toFixed(2)+'deg';drag.items.forEach(i=>i.e.style.setProperty('--tilt',tl));const wx=dx/z,wy=dy/z;drag.items.forEach(i=>{i.c.x=Math.round(i.x+wx);i.c.y=Math.round(i.y+wy);i.e.style.left=i.c.x+'px';i.e.style.top=i.c.y+'px'});
   const ex=new Set(drag.items.map(i=>i.c.id));const tg=dropTarget(document.elementFromPoint(e.clientX,e.clientY),ex,drag.items.length==1?drag.items[0].c.type:null,e.clientY);
   clearDrop();if(tg)tg.el.classList.add('drop');drag.tgt=tg;linksSoon()}});
 function startMove(){const c=find(drag.id);if(!c){drag=null;return}
@@ -294,7 +319,7 @@ function endPtr(e){pointers.delete(e.pointerId);canvas.classList.remove('pan');
  if(d.kind=='pan'){saveViewSoon();if(S.needRender)render();return}
  if(d.kind=='rs'){touch();linksSoon();if(S.needRender)render();return}
  if(d.kind=='maybe'){if(S.needRender){render();return}if(d.editable&&e.type=='pointerup'){d.editable.focus();placeCaret(e.clientX,e.clientY)}return}
- if(d.kind=='move'){d.items.forEach(i=>i.e.classList.remove('dragging'));clearDrop();const t=d.tgt;
+ if(d.kind=='move'){d.items.forEach(i=>{i.e.classList.remove('dragging');i.e.style.removeProperty('--tilt')});clearDrop();const t=d.tgt;
   if(t&&t.type=='board'){const bc=find(t.id);if(bc)moveToBoard(d.items.map(i=>i.c),bc.board)}
   else if(t&&t.type=='col'){const col=find(t.id),c=d.items[0].c;if(col){c.col=col.id;col.items.splice(t.idx,0,c.id);S.sel=new Set([c.id])}}
   touch();render()}}
@@ -305,7 +330,18 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();const v=V();
  if(e.ctrlKey||e.metaKey){const cr=canvas.getBoundingClientRect(),mx=e.clientX-cr.left,my=e.clientY-cr.top,nz=clamp(v.z*Math.exp(-e.deltaY*.01),.2,3);v.x=mx-(mx-v.x)*nz/v.z;v.y=my-(my-v.y)*nz/v.z;v.z=nz;linksSoon()}
  else{v.x-=e.shiftKey&&!e.deltaX?e.deltaY:e.deltaX;v.y-=e.shiftKey&&!e.deltaX?0:e.deltaY}applyView();saveViewSoon()},{passive:false});
 canvas.addEventListener('dblclick',e=>{const c=e.target.closest('.card.t-board');if(c&&!e.target.closest('[contenteditable=plaintext-only]')){const k=find(c.dataset.id);if(k)openBoard(k.board);return}
- if(!e.target.closest('.card')&&P.canWrite){const p=worldPt(e.clientX,e.clientY);addCard('note',{x:p.x-130,y:p.y-20})}});
+ if(!e.target.closest('.card')&&P.canWrite)openRing(e.clientX,e.clientY)});
+function openRing(cx,cy){const ring=$('#ring'),tools=TOOLS.filter(t=>t[0]!='line'),R=innerWidth<640?84:96;
+ cx=clamp(cx,R+34,innerWidth-R-34);cy=clamp(cy,R+80,innerHeight-R-130);const p=worldPt(cx,cy);S.ringPt=p;
+ ring.style.left=cx+'px';ring.style.top=cy+'px';
+ ring.innerHTML='<div class="hub"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>'+tools.map(([k,l],n)=>{const a=-Math.PI/2+n*2*Math.PI/tools.length;return `<button class="spoke" data-tool="${k}" style="--x:${(Math.cos(a)*R).toFixed(1)}px;--y:${(Math.sin(a)*R).toFixed(1)}px;--n:${n}" aria-label="Add ${l}"><svg viewBox="0 0 24 24">${ICON[k]}</svg><span>${l}</span></button>`}).join('');
+ ring.hidden=false;ring.querySelector('.spoke').focus({preventScroll:true})}
+function closeRing(){$('#ring').hidden=true}
+$('#ring').addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(!b)return;const t=b.dataset.tool,p=S.ringPt,pt={x:p.x-DEFW[t]/2,y:p.y-30};closeRing();
+ if(t=='image')pickMedia(pt,null);else if(t=='voice')recordVoice(pt,null);else addCard(t,pt)});
+document.addEventListener('pointerdown',e=>{if(!$('#ring').hidden&&!e.target.closest('#ring'))closeRing()},true);
+document.addEventListener('keydown',e=>{if(e.key=='Escape'&&!$('#ring').hidden){e.stopPropagation();closeRing()}},true);
+canvas.addEventListener('wheel',()=>closeRing(),{passive:true});
 canvas.addEventListener('dragover',e=>{e.preventDefault()});
 canvas.addEventListener('drop',e=>{e.preventDefault();if(!P.canWrite)return;const p=worldPt(e.clientX,e.clientY);const fs=[...(e.dataTransfer.files||[])];const bf=fs.find(f=>/\.board$/i.test(f.name));if(bf){importBoardFile(bf);return}if(fs.length){addMedia(fs,{x:p.x-140,y:p.y-80});return}
  const u=(e.dataTransfer.getData('text/uri-list')||e.dataTransfer.getData('text/plain')||'').trim();if(/^https?:\/\/\S+$/i.test(u))addCard('link',{x:p.x-150,y:p.y-30},null,{url:u,text:titleFrom(u)});else if(u)addCard('note',{x:p.x-130,y:p.y-30},null,{text:u})});
@@ -355,7 +391,8 @@ ctx.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return
  else if(a=='connect'&&first){S.connect={from:first.id};setMode()}});
 
 /* ---------- toolbar ---------- */
-$('#tb').innerHTML=TOOLS.map(([k,l])=>`<button class="tool" data-tool="${k}" title="${k=='line'?'Line: click two cards to connect them':k=='image'?'Pictures, videos and audio: click to add, or drop files on the board':k=='voice'?'Voice note: click to record':l+': click, or drag onto the board'}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
+const GROUPS=[['note','heading','todo','link'],['image','voice'],['board','column','swatch'],['line']];
+$('#tb').innerHTML=GROUPS.map(g=>g.map(k=>{const l=TOOLS.find(t=>t[0]==k)[1];return `<button class="tool" data-tool="${k}" title="${k=='line'?'Line: click two cards to connect them':k=='image'?'Pictures, videos and audio: click to add, or drop files on the board':k=='voice'?'Voice note: click to record':l+': click, or drag onto the board'}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`}).join('')).join('<i class="dock-sep"></i>');
 const tb=$('#tb');
 const pickMedia=(pt,col)=>{S.pendingMedia={pt,col};$('#file').click()};
 tb.addEventListener('pointerdown',e=>{const b=e.target.closest('[data-tool]');if(!b||e.button>0)return;const tool=b.dataset.tool;if(tool=='line')return;e.preventDefault();tdrag={tool,sx:e.clientX,sy:e.clientY,ghost:null};b.setPointerCapture(e.pointerId)});
@@ -405,7 +442,7 @@ function doSearch(){const q=$('#sq').value.trim().toLowerCase();results=[];
  if(q){outer:for(const b of Object.values(S.boards)){for(const c of b.cards){const sub=c.type=='board'&&S.boards[c.board];const hay=[c.text,c.url,c.hex,sub&&sub.title,...(c.type=='todo'?c.items.map(i=>i.t):[])].filter(Boolean).join(' \n ');
   const at=hay.toLowerCase().indexOf(q);if(at<0)continue;const line=hay.slice(Math.max(0,at-30),at+70).replace(/\s+/g,' ').trim();results.push({b:b.id,c:c.id,label:line,kind:TN[c.type],path:pathOf(b.id).map(x=>x.title||'Untitled').join(' › ')});if(results.length>80)break outer}}}
  rsel=0;$('#sr').innerHTML=!q?'<div class="nores">Type to search notes, lists, links, captions and board names across every board.</div>':results.length?results.map((r,i)=>`<button class="res${i==0?' on':''}" data-i="${i}">${esc(r.label)}<small>${esc(r.kind)} · ${esc(r.path)}</small></button>`).join(''):'<div class="nores">Nothing matches that yet.</div>'}
-function goResult(i){const r=results[i];if(!r)return;closeOv();openBoard(r.b);requestAnimationFrame(()=>focusCard(r.c))}
+function goResult(i){const r=results[i];if(!r)return;closeOv();openBoard(r.b,()=>requestAnimationFrame(()=>focusCard(r.c)))}
 $('#sq').addEventListener('input',doSearch);
 $('#sq').addEventListener('keydown',e=>{if(e.key=='Enter'){e.preventDefault();goResult(rsel)}else if(e.key=='ArrowDown'||e.key=='ArrowUp'){e.preventDefault();rsel=clamp(rsel+(e.key=='ArrowDown'?1:-1),0,Math.max(0,results.length-1));document.querySelectorAll('.res').forEach((x,i)=>x.classList.toggle('on',i==rsel));document.querySelector('.res.on')?.scrollIntoView({block:'nearest'})}});
 $('#sr').addEventListener('click',e=>{const b=e.target.closest('.res');if(b)goResult(+b.dataset.i)});
@@ -476,6 +513,8 @@ $('#bStore').onclick=async()=>{const m=modal(`<h2>Storage on this device</h2><p>
 $('#zi').onclick=()=>zoomBy(1.2);$('#zo').onclick=()=>zoomBy(1/1.2);$('#zl').onclick=()=>fit();
 addEventListener('resize',()=>{placeCtx();linksSoon()});
 
+$('#homeMark').addEventListener('click',()=>openBoard('home'));
 /* ---------- start ---------- */
 load().then(()=>{$('#load').hidden=true;const h=location.hash.slice(1);show(S.boards[h]?h:'home')});
 }
+
