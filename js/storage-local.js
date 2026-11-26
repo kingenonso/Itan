@@ -3,7 +3,7 @@
    live in the "media" store as raw files, so there is no size cap beyond the device's free space.
    Any future cloud adapter must offer the same methods. */
 (function () {
-  const DB_NAME = 'boards-app', DB_VER = 1;
+  const DB_NAME = 'boards-app', DB_VER = 2;
   let dbp = null;
   const open = () => dbp || (dbp = new Promise((res, rej) => {
     const r = indexedDB.open(DB_NAME, DB_VER);
@@ -11,6 +11,8 @@
       const db = r.result;
       if (!db.objectStoreNames.contains('docs')) db.createObjectStore('docs');
       if (!db.objectStoreNames.contains('media')) db.createObjectStore('media');
+      if (!db.objectStoreNames.contains('history')) db.createObjectStore('history');
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -82,6 +84,26 @@
       const persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false;
       return { used: est.usage || 0, available: est.quota || 0, persisted };
     },
+    // Board history: snapshots keyed "boardId|time"
+    async putHistory(boardId, time, snap) { await tx('history', 'readwrite', s => { s.put(snap, boardId + '|' + String(time).padStart(15, '0')); }); },
+    async listHistory(boardId) {
+      const out = [];
+      await tx('history', 'readonly', s => {
+        const range = IDBKeyRange.bound(boardId + '|', boardId + '|\uffff');
+        const kr = s.getAllKeys(range), vr = s.getAll(range);
+        return Promise.all([req(kr), req(vr)]).then(([keys, vals]) => keys.forEach((k, i) => out.push({ key: k, time: +k.split('|')[1], snap: vals[i] })));
+      });
+      return out;
+    },
+    async allHistoryMedia() {
+      const out = new Set();
+      await tx('history', 'readonly', s => req(s.getAll()).then(vals => vals.forEach(v => (v && v.media || []).forEach(m => out.add(m)))));
+      return [...out];
+    },
+    async delHistory(key) { await tx('history', 'readwrite', s => { s.delete(key); }); },
+    // Small settings and app state
+    async getKV(k) { return tx('kv', 'readonly', s => req(s.get(k))); },
+    async setKV(k, v) { await tx('kv', 'readwrite', s => { s.put(v, k); }); },
     async keepSafe() {
       return navigator.storage && navigator.storage.persist ? navigator.storage.persist() : false;
     }
