@@ -1,6 +1,6 @@
 {
 const $=s=>document.querySelector(s);
-const N=window.N={hooks:{render:[],saved:[],beforeOpen:async()=>true,isLocked:()=>false,snapDrag:()=>{},dragEnd:()=>{},historyMedia:async()=>[],ready:[]}};
+const N=window.N={hooks:{render:[],saved:[],beforeOpen:async()=>true,isLocked:()=>false,snapDrag:()=>{},dragEnd:()=>{},historyMedia:async()=>[],ready:[],cardTypes:{}}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -21,8 +21,9 @@ const ICON={
  column:'<rect x="4" y="4" width="6" height="16" rx="1.6"/><rect x="14" y="4" width="6" height="10" rx="1.6"/>',
  swatch:'<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z"/>',
  line:'<path d="M5 19L19 5M11 5h8v8"/>',
+ shot:'<rect x="3.5" y="6" width="12" height="12" rx="2"/><path d="M15.5 10.5l5-3v9l-5-3"/>',
  voice:'<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/>'};
-const TOOLS=[['note','Note'],['heading','Heading'],['todo','Checklist'],['link','Link'],['image','Media'],['voice','Voice'],['board','Board'],['column','Column'],['swatch','Colour'],['line','Line']];
+const TOOLS=[['note','Note'],['heading','Heading'],['todo','Checklist'],['link','Link'],['image','Media'],['voice','Voice'],['board','Board'],['column','Column'],['swatch','Colour'],['shot','Shot'],['line','Line']];
 const canvas=$('#canvas'),world=$('#world'),svg=$('#links'),ctx=$('#ctx');
 const S={boards:{},images:{},cur:'home',view:{},sel:new Set(),selLink:null,linkPt:null,connect:null,undo:[],redo:[],editSnapped:false,needRender:false};
 /* P.remote: what the store holds (key -> doc). P.sent: what we last saw/sent per key. P.pend: keys with writes in flight. */
@@ -122,7 +123,7 @@ const B=()=>S.boards[S.cur];
 const find=id=>B().cards.find(c=>c.id==id);
 const el=id=>world.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
 const V=()=>S.view[S.cur]||(S.view[S.cur]={x:40,y:90,z:1});
-const isEditing=()=>{const a=document.activeElement;return!!a&&(a.isContentEditable||/INPUT|TEXTAREA/.test(a.tagName))};
+const isEditing=()=>{const a=document.activeElement;return!!a&&(a.isContentEditable||/INPUT|TEXTAREA|SELECT/.test(a.tagName))};
 const snapState=()=>({docs:Object.fromEntries([...docsOf(S.boards)].map(([k,v])=>[k,stable(v)])),t:Date.now()});
 function pushUndo(st){S.undo.push(st);if(S.undo.length>60)S.undo.shift();S.redo=[]}
 function snap(){if(P.canWrite){flushNow();pushUndo(snapState())}}
@@ -144,11 +145,12 @@ function inner(c){
  case 'link':{if(!c.url)return P.canWrite?`<form class="lf"><input name="u" placeholder="Paste a web address" autocomplete="off" aria-label="Web address"><button>Add</button></form>`:'<div class="ph" style="height:auto;padding:12px">Empty link</div>';
   let host='';try{host=new URL(c.url).hostname.replace(/^www\./,'')}catch(e){}
   return `<div class="lk"><span class="fav">${esc((host[0]||'?').toUpperCase())}</span><div class="lkm">${ed('text',c.text,host||'Link title','txt lt')}<span class="host">${esc(host||c.url)}</span></div>${/^https:\/\//i.test(c.url)?`<a class="open" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open link">↗</a>`:''}</div>`}
- case 'image':case 'video':case 'audio':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap')+(c.type=='audio'&&N.hooks.audioExtra?N.hooks.audioExtra(c):'');
+ case 'image':case 'video':case 'audio':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap')+(c.type=='audio'&&N.hooks.audioExtra?N.hooks.audioExtra(c):'')+(c.type=='video'&&N.hooks.videoExtra?N.hooks.videoExtra(c):'');
  case 'board':{const b=S.boards[c.board];const n=b?b.cards.filter(x=>!x.col).length:0;
   return `<button class="bic" data-act="open" aria-label="Open board">${preview(b)}<span class="door"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span></button>`+(b?ed('btitle',b.title,'Untitled board','txt bt'):'<div class="bt">Missing board</div>')+`<div class="sub">${n} card${n==1?'':'s'}${b&&b.voice?' · <span class="vb" title="Has a voice explanation">voice explanation</span>':''}</div>`}
  case 'column':{const kids=c.items.map(id=>find(id)).filter(Boolean);return ed('text',c.text,'Column title','txt ct')+`<div class="colb" data-col="${esc(c.id)}">${kids.map(k=>cardHTML(k,true)).join('')||'<div class="empty">Drop cards here</div>'}</div>`}
- case 'swatch':{const h=okc(c.hex)||'#737a84';return `<label class="sw" style="background:${h}"><input type="color" value="${h}" data-act="hex" aria-label="Pick colour"${P.canWrite?'':' disabled'}></label>`+ed('text',c.text,h,'txt cap')}}}
+ case 'swatch':{const h=okc(c.hex)||'#737a84';return `<label class="sw" style="background:${h}"><input type="color" value="${h}" data-act="hex" aria-label="Pick colour"${P.canWrite?'':' disabled'}></label>`+ed('text',c.text,h,'txt cap')}
+ default:{const t=N.hooks.cardTypes[c.type];return t?t.render(c):''}}}
 const EH={note:72,heading:34,todo:120,link:66,image:160,video:210,audio:84,board:170,swatch:136};
 function dueLabel(d){const t=new Date();t.setHours(0,0,0,0);const x=new Date(d+'T00:00:00');const n=Math.round((x-t)/864e5);return n==0?'Today':n==1?'Tomorrow':n==-1?'Yesterday':x.toLocaleDateString([], {day:'numeric',month:'short'})}
 function dueChip(it,i){if(it.due){const late=!it.d&&it.due<todayStr();return `<button class="due${late?' late':''}${it.due===todayStr()&&!it.d?' now':''}" data-act="due" data-i="${i}" title="Change due date">${esc(dueLabel(it.due))}</button>`}return P.canWrite?`<button class="due add-due" data-act="due" data-i="${i}" aria-label="Add a due date" title="Add a due date"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="3"/><path d="M4 10h16M9 3.5v4M15 3.5v4"/></svg></button>`:''}
@@ -236,6 +238,7 @@ function newCard(type,x,y,props={}){const c={id:uid(),type,x:Math.round(x),y:Mat
  return c}
 function addCard(type,pt,col,props){if(!P.canWrite)return null;snap();const c=newCard(type,pt.x,pt.y,props);B().cards.push(c);
  if(col){const k=find(col.id);if(k){c.col=k.id;k.items.splice(col.idx,0,c.id)}}
+ {const ht=N.hooks.cardTypes[type];if(ht&&ht.placed)ht.placed(c)}
  S.sel=new Set([c.id]);S.popId=c.id;touch();render();
  if(!props){const f=el(c.id)?.querySelector('[contenteditable],input:not([type=color])');if(f){f.focus();if(type=='board'||type=='column')selectAll(f)}}return c}
 function selectAll(n){const r=document.createRange();r.selectNodeContents(n);const s=getSelection();s.removeAllRanges();s.addRange(r)}
@@ -299,7 +302,7 @@ canvas.addEventListener('pointerdown',e=>{if(e.button>0)return;pointers.set(e.po
  const id=card.dataset.id;
  if(S.connect){e.preventDefault();connectClick(id);return}
  if(t.closest('[data-act=rs]')&&P.canWrite){e.preventDefault();snap();drag={kind:'rs',id,sx:e.clientX,w:find(id).w};canvas.setPointerCapture(e.pointerId);return}
- if(t.closest('input,button,a,form,label,video,audio'))return;
+ if(t.closest('input,select,textarea,button,a,form,label,video,audio'))return;
  const editable=P.canWrite&&t.closest('[contenteditable=plaintext-only]');if(editable&&editable===document.activeElement)return;
  e.preventDefault();if(isEditing())document.activeElement.blur();
  if(e.shiftKey){S.sel.has(id)?S.sel.delete(id):S.sel.add(id)}else if(!S.sel.has(id))S.sel=new Set([id]);
@@ -400,8 +403,8 @@ ctx.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return
  else if(a=='connect'&&first){S.connect={from:first.id};setMode()}});
 
 /* ---------- toolbar ---------- */
-const GROUPS=[['note','heading','todo','link'],['image','voice'],['board','column','swatch'],['line']];
-$('#tb').innerHTML=GROUPS.map(g=>g.map(k=>{const l=TOOLS.find(t=>t[0]==k)[1];return `<button class="tool" data-tool="${k}" title="${k=='line'?'Line: click two cards to connect them':k=='image'?'Pictures, videos and audio: click to add, or drop files on the board':k=='voice'?'Voice note: click to record':l+': click, or drag onto the board'}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`}).join('')).join('<i class="dock-sep"></i>');
+const GROUPS=[['note','heading','todo','link'],['image','voice'],['board','column','swatch'],['shot','line']];
+$('#tb').innerHTML=GROUPS.map(g=>g.map(k=>{const l=TOOLS.find(t=>t[0]==k)[1];return `<button class="tool" data-tool="${k}" title="${k=='line'?'Line: click two cards to connect them':k=='image'?'Pictures, videos and audio: click to add, or drop files on the board':k=='voice'?'Voice note: click to record':k=='shot'?'Shot: a numbered shot with size, lens and movement':l+': click, or drag onto the board'}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`}).join('')).join('<i class="dock-sep"></i>');
 const tb=$('#tb');
 const pickMedia=(pt,col)=>{S.pendingMedia={pt,col};$('#file').click()};
 tb.addEventListener('pointerdown',e=>{const b=e.target.closest('[data-tool]');if(!b||e.button>0)return;const tool=b.dataset.tool;if(tool=='line')return;e.preventDefault();tdrag={tool,sx:e.clientX,sy:e.clientY,ghost:null};b.setPointerCapture(e.pointerId)});
@@ -485,9 +488,10 @@ async function recordVoice(pt,col,onSave,title){if(!P.canWrite)return;
 // A .board file = "BRDS1" + 4-byte length + JSON (boards + media list) + the media files one after another.
 const MAGIC='BRDS1';
 function safeName(t){return (String(t||'board').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60)||'board')}
+function cardMedia(c){const out=[];if(c.media)out.push(c.media);if(c.frame)out.push(c.frame);return out}
 function boardMedia(b){const out=[];if(b.voice)out.push(b.voice);const w=b.extra&&b.extra.walk;if(w&&w.media)out.push(w.media);return out}
 async function exportBoard(rootId,how){const ids=[];collect(rootId,ids);const boards={};ids.forEach(id=>boards[id]=S.boards[id]);
- const mids=[...new Set(ids.flatMap(id=>[...S.boards[id].cards.filter(c=>c.media).map(c=>c.media),...boardMedia(S.boards[id])]))];status('Preparing file…');
+ const mids=[...new Set(ids.flatMap(id=>[...S.boards[id].cards.flatMap(cardMedia),...boardMedia(S.boards[id])]))];status('Preparing file…');
  const media=[],parts=[];for(const id of mids){const b=await Store.getMedia(id).catch(()=>null);if(b){media.push({id,size:b.size,type:b.type||''});parts.push(b)}}
  const json=new TextEncoder().encode(JSON.stringify({app:'boards',v:1,root:rootId,boards,media}));const len=new Uint8Array(4);new DataView(len.buffer).setUint32(0,json.length,true);
  const file=new Blob([MAGIC,len,json,...parts],{type:'application/octet-stream'});const fname=safeName(S.boards[rootId].title)+'.board';
@@ -502,7 +506,7 @@ async function importBoardFile(file){if(!P.canWrite)return;try{
  const src={};for(const[k,b]of Object.entries(o.boards))if(okId(k)&&b&&Array.isArray(b.cards))src[k]=normalize({...b,id:k});
  snap();const seen=new Set();
  const clone=(id,parent)=>{const b=src[id];if(!b||seen.has(id))return null;seen.add(id);const nb=JSON.parse(JSON.stringify(b));nb.id='b'+uid();nb.parent=parent;if(nb.voice)nb.voice=mediaMap[nb.voice]||null;if(nb.extra&&nb.extra.walk&&nb.extra.walk.media)nb.extra.walk.media=mediaMap[nb.extra.walk.media]||nb.extra.walk.media;const map={};nb.cards.forEach(c=>map[c.id]=uid());
-  nb.cards=nb.cards.map(c=>{const k={...c,id:map[c.id]};if(k.col)k.col=map[k.col]||null;if(k.type=='column')k.items=k.items.map(x=>map[x]).filter(Boolean);if(k.media)k.media=mediaMap[k.media]||k.media;if(k.type=='board')k.board=clone(c.board,nb.id)||'';return k});
+  nb.cards=nb.cards.map(c=>{const k={...c,id:map[c.id]};if(k.col)k.col=map[k.col]||null;if(k.type=='column')k.items=k.items.map(x=>map[x]).filter(Boolean);if(k.media)k.media=mediaMap[k.media]||k.media;if(k.frame)k.frame=mediaMap[k.frame]||k.frame;if(k.type=='board')k.board=clone(c.board,nb.id)||'';return k});
   nb.links=nb.links.filter(l=>map[l.from]&&map[l.to]).map(l=>({id:uid(),from:map[l.from],to:map[l.to]}));S.boards[nb.id]=nb;return nb.id};
  const rootNew=clone(o.root,S.cur);const rb=S.boards[rootNew];if(o.root=='home'&&rb.title=='Home')rb.title='Imported boards';
  const pt=centerPt(170);const c=newCard('board',pt.x,pt.y,{board:rootNew,color:'#2a9ec4'});B().cards.push(c);S.sel=new Set([c.id]);touch();render();
@@ -513,7 +517,7 @@ $('#bShare').onclick=()=>{const cur=B();const m=modal(`<h2>Share a board</h2><p>
 $('#boardFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importBoardFile(f);e.target.value=''});
 $('#bStore').onclick=async()=>{const m=modal(`<h2>Storage on this device</h2><p>Checking…</p>`);let u={used:0,available:0,persisted:false},list=[];
  try{u=await Store.usage();list=await Store.listMedia()}catch(e){}
- const used=new Set();Object.values(S.boards).forEach(b=>{boardMedia(b).forEach(m=>used.add(m));b.cards.forEach(c=>{if(c.media)used.add(c.media)})});try{(await N.hooks.historyMedia()).forEach(m=>used.add(m))}catch(e){}const unused=list.filter(x=>!used.has(x.id)),ub=unused.reduce((n,x)=>n+x.size,0);
+ const used=new Set();Object.values(S.boards).forEach(b=>{boardMedia(b).forEach(m=>used.add(m));b.cards.forEach(c=>cardMedia(c).forEach(m=>used.add(m)))});try{(await N.hooks.historyMedia()).forEach(m=>used.add(m))}catch(e){}const unused=list.filter(x=>!used.has(x.id)),ub=unused.reduce((n,x)=>n+x.size,0);
  const pct=u.available?Math.min(100,u.used/u.available*100):0;
  m.innerHTML=`<h2>Storage on this device</h2><p>Your boards, pictures and videos are saved here on this device, not on a server, so the only limit is this device’s free space. Each browser and device keeps its own copy.</p><div class="meter"><i style="width:${pct.toFixed(1)}%"></i></div>
  <div class="kv"><span>Used</span><b>${esc(mb(u.used))}</b><span>Space this app may use</span><b>${u.available?esc(mb(u.available)):'Not reported'}</b><span>Protected from clean-up</span><b>${u.persisted?'Yes':'Not yet'}</b><span>Media not on any board</span><b>${unused.length} file${unused.length==1?'':'s'} · ${esc(mb(ub))}</b></div>
@@ -527,7 +531,7 @@ addEventListener('resize',()=>{placeCtx();linksSoon()});
 
 $('#homeMark').addEventListener('click',()=>openBoard('home'));
 /* ---------- add-on features live in js/features/*.js and use this ---------- */
-Object.assign(N,{$,esc,uid,clamp,okc,okId,S,P,Store,B,find,el,V,render,applyView,drawLinks,linksSoon,touch,snap,show,openBoard,modal,closeOv,confirmBox,toast,status,settled,worldPt,centerPt,wrect,recordVoice,newCard,addCard,fit,saveViewSoon,collect,normalize,pathOf,mb,ICON,TOOLS,DEFW,focusCard,refreshSel,exportBoard,importBoardFile,isEditing,flushNow,todayStr,dueLabel,boardMedia,mediaTag,canvas,world,requestRender,addMedia});
+Object.assign(N,{TYPES,MINW,DEFW,EH,TN,cardHTML,dropTarget,$,esc,uid,clamp,okc,okId,S,P,Store,B,find,el,V,render,applyView,drawLinks,linksSoon,touch,snap,show,openBoard,modal,closeOv,confirmBox,toast,status,settled,worldPt,centerPt,wrect,recordVoice,newCard,addCard,fit,saveViewSoon,collect,normalize,pathOf,mb,ICON,TOOLS,DEFW,focusCard,refreshSel,exportBoard,importBoardFile,isEditing,flushNow,todayStr,dueLabel,boardMedia,mediaTag,canvas,world,requestRender,addMedia});
 /* ---------- start ---------- */
 load().then(()=>{$('#load').hidden=true;const h=location.hash.slice(1);show(S.boards[h]?h:'home');N.hooks.ready.forEach(f=>{try{f()}catch(e){console.error(e)}})});
 }

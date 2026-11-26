@@ -5,7 +5,7 @@
   const GAP = 3 * 60 * 1000, KEEP = 80;
   const last = {}; // boardId -> {time, sig}
   const sigOf = b => JSON.stringify([b.title, b.cards, b.links]);
-  const snapOf = b => ({ title: b.title, cards: JSON.parse(JSON.stringify(b.cards)), links: JSON.parse(JSON.stringify(b.links)), media: [...new Set(b.cards.filter(c => c.media).map(c => c.media))] });
+  const snapOf = b => ({ title: b.title, cards: JSON.parse(JSON.stringify(b.cards)), links: JSON.parse(JSON.stringify(b.links)), media: [...new Set(b.cards.flatMap(c => [c.media, c.frame]).filter(Boolean))] });
   async function capture(b, force) {
     if (!b || preview) return;
     const sig = sigOf(b), l = last[b.id];

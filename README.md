@@ -36,6 +36,14 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 - **Present mode** (P). A slideshow that glides from card to card in reading order.
 - **Voice to text.** Optional, on the device: voice notes, board explanations and walkthroughs get written out and become searchable. Needs a one-time download of about 80 MB, then works offline.
 
+**Made for planning films**
+- **Film production template**: one tap builds pre-production, production and post-production boards for a whole film.
+- **Script breakdown**: paste or open a script (plain text, Fountain, Final Draft .fdx or PDF). Notera splits it into scenes, finds the characters, and lets you tag props, wardrobe, hair and makeup, vehicles, effects and extras by selecting words.
+- **Shooting schedule**: colour-coded scene strips (inside or outside, day or night) that you drag into shoot days, with page counts and screen time per day. Group by location puts scenes in the same place together.
+- **Call sheets**: made for each shoot day from the schedule, breakdown and cast list. Add the address, parking, weather and nearest hospital, then send it to WhatsApp or save it as a picture or PDF.
+- **Shot cards**: numbered shots (1A, 1B…) with size, lens, movement, angle, a storyboard frame and a status. The Shots tab lists every shot in the film and saves as a picture or PDF.
+- **Review notes**: open any video card in Review, pause anywhere and pin a note to that moment. Export the notes as markers for DaVinci Resolve (EDL) or copy them as text.
+
 **Every day**
 - **Today** (T). Every unticked checklist item from every board, grouped by due date, with reminders while Notera is open or installed.
 - **Share to WhatsApp, Telegram or email** through the phone's share sheet. When installed, Notera also appears in other apps' share menus, and shared items land on an Inbox board.
@@ -61,6 +69,7 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 | `js/config.js` | App name and which storage to use (`local` today) |
 | `js/storage-local.js` | Saves boards and media on the user's device (IndexedDB) |
 | `js/app.js` | The board app itself |
+| `js/features/film-*.js`, `css/film.css` | Film workspace: breakdown, schedule, call sheets, shots, people, review notes |
 | `js/features/` | Today, sharing, walkthroughs and Present, voice to text, history, PIN lock, tidy, templates, export |
 | `sw.js` | Offline support |
 | `manifest.json`, `icons/` | Install as an app |

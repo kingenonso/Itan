@@ -19,10 +19,11 @@
     cards = outer; parentId = outerParent;
     return add('board', x, y, { board: id, color, w: 190 });
   };
-  const shot = (n, size, lens, move, what) => `${n} · ${size} · ${lens} · ${move}\n${what}`;
+  const launch = (view, x, y, w = 300) => add('film', x, y, { view, w });
+  const shotCol = (title, shots, x, y, w = 300) => { const c = add('column', x, y, { text: title, w, items: [] }); shots.forEach(([scene, letter, size, lens, move, angle, text]) => { const k = add('shot', 0, 0, { scene, letter, size, lens, move, angle, text, status: 'todo', col: c.id }); c.items.push(k.id); }); return c; };
 
   const T = [
-    { id: 'film', name: 'Film production', build() {
+    { id: 'film', name: 'Film production', after: b => { if (N.film && !b.extra.film) { b.extra.film = { title: ['Film production', 'Untitled board', ''].includes(b.title) ? 'Our film' : b.title, scenes: [], people: [], days: [], script: '', fps: 24 }; } }, build() {
       head('Our film', 40, 30, 600);
       note('Logline\n\nOne or two sentences: who wants what, what stands in the way, and what happens if they fail.', 40, 110, 320, '#8f5ae8');
       const pre = sub('Pre-production', '#4b6bff', 400, 110, () => {
@@ -30,6 +31,7 @@
         list('Before the shoot', ['Lock the script', 'Break down the script', 'Storyboard key scenes', 'Make the shot list', 'Cast the actors', 'Scout and confirm locations', 'Get permission for every location', 'Book the crew', 'Plan the shoot days', 'Confirm the budget', 'Gear list and rentals', 'Release forms ready'], 40, 110, 320);
         sub('Script and story', '#8f5ae8', 400, 110, () => {
           head('Script and story', 40, 30);
+          launch('breakdown', 720, 110, 320);
           note('Logline\n\n', 40, 110, 300); note('Synopsis\n\nBeginning:\nMiddle:\nEnd:', 360, 110, 320);
           col('Characters', ['Name · age · what they want', 'Name · age · what they want'], 40, 300, 300);
           col('Script drafts', ['Draft 1 · paste a link to the script or drop the PDF here'], 360, 300, 320);
@@ -41,9 +43,10 @@
         });
         sub('Shot list', '#2a9ec4', 820, 110, () => {
           head('Shot list', 40, 30);
-          note('One card per shot: number · shot size · lens · movement, then what happens. Shot sizes: wide, medium, close-up, extreme close-up, over-the-shoulder, insert.', 40, 100, 600);
-          col('Scene 1 · INT. House · Day', [shot('1A', 'Wide', '17mm', 'Static', 'Establish the room'), shot('1B', 'Medium', '28mm', 'Slow push in', 'Lead enters'), shot('1C', 'Close-up', '50mm', 'Handheld', 'Reaction')], 40, 200, 300);
-          col('Scene 2 · EXT. Street · Night', [shot('2A', 'Wide', '20mm', 'Gimbal follow', 'Walking towards camera')], 360, 200, 300);
+          note('Add a Shot from the dock for each shot. Drop a sketch or photo on a shot to use it as the storyboard frame, and tap its status as you shoot.', 40, 100, 600);
+          launch('shots', 680, 100, 300);
+          shotCol('Scene 1 · INT. House · Day', [['1', 'A', 'Wide', '17mm', 'Static', 'Eye level', 'Establish the room'], ['1', 'B', 'Medium', '28mm', 'Push in', 'Eye level', 'Lead enters'], ['1', 'C', 'Close-up', '50mm', 'Handheld', 'Low', 'Reaction']], 40, 200, 300);
+          shotCol('Scene 2 · EXT. Street · Night', [['2', 'A', 'Wide', '20mm', 'Gimbal', 'Eye level', 'Walking towards camera']], 360, 200, 300);
           col('Pickups and extras', ['B-roll · hands, details, textures'], 680, 200, 300);
         });
         sub('Locations', '#36a86d', 400, 330, () => {
@@ -53,14 +56,14 @@
         });
         sub('Cast and crew', '#f39a1e', 610, 330, () => {
           head('Cast and crew', 40, 30);
-          col('Cast', ['Role · actor · phone', 'Role · actor · phone'], 40, 110, 300);
-          col('Crew', ['Director', 'Director of photography', 'Gaffer', 'Sound', 'Makeup and wardrobe', 'Production assistant'], 360, 110, 300);
-          list('Paperwork', ['Actor release forms', 'Location agreements', 'Crew agreements and rates'], 680, 110, 300);
+          launch('people', 40, 110, 320);
+          note('Characters from your script are added automatically when you bring the script into the breakdown. Add actors’ names and phone numbers there so they appear on call sheets.', 40, 210, 320);
+          list('Paperwork', ['Actor release forms', 'Location agreements', 'Crew agreements and rates'], 400, 110, 300);
         });
         sub('Schedule', '#737a84', 820, 330, () => {
           head('Shoot schedule', 40, 30);
-          note('Group scenes by location, not by story order, to save time. Put dates on the Production checklist so they show in Today.', 40, 100, 600);
-          ['Day 1', 'Day 2', 'Day 3'].forEach((d, i) => col(d, i === 0 ? ['Call 7:00 · Scene 1 · INT. House', 'Lunch 12:30', 'Scene 3 · INT. House'] : [], 40 + i * 300, 190, 280));
+          launch('schedule', 40, 100, 320);
+          note('Drag scene strips into shoot days. Shoot scenes in the same place together, whatever their order in the story. Group by location does that for you.', 400, 100, 360);
         });
         sub('Budget', '#36a86d', 400, 550, () => {
           head('Budget', 40, 30);
@@ -79,13 +82,13 @@
         list('Every shoot day', ['Call sheet sent the night before', 'Batteries charged', 'Cards formatted', 'White balance and exposure checked', 'Slate every take', 'Record 30 seconds of room tone', 'Back up cards twice before formatting'], 40, 110, 320);
         sub('Call sheets', '#ff5a3c', 400, 110, () => {
           head('Call sheets', 40, 30);
-          note('Day 1 · date\n\nCrew call:\nCast call:\nLocation and map link:\nScenes:\nWeather:\nNearest hospital:\nProducer’s phone:', 40, 110, 320, '#ff5a3c');
-          note('Day 2 · date\n\nCrew call:\nCast call:\nLocation and map link:\nScenes:\nWeather:\nNearest hospital:\nProducer’s phone:', 380, 110, 320);
+          launch('callsheets', 40, 110, 320);
+          note('Each shoot day on the schedule gets a call sheet with its scenes, cast and call times. Add the address, parking, weather and nearest hospital, then send it to everyone on WhatsApp.', 400, 110, 360, '#ff5a3c');
         });
         sub('Shot tracker', '#2a9ec4', 610, 110, () => {
           head('Shot tracker', 40, 30);
-          note('Drag each shot along as you go. Copy shots from the Shot list board.', 40, 100, 520);
-          col('To shoot', ['1A', '1B', '1C'], 40, 190); col('Shot', [], 320, 190); col('Pickups', [], 600, 190);
+          launch('shots', 40, 100, 320);
+          note('Tap a shot’s status as you go: To shoot, Done, Pickup. The shot list shows what’s left for the day.', 400, 100, 360);
         });
         sub('Continuity', '#e0508f', 400, 330, () => {
           head('Continuity', 40, 30);
@@ -118,7 +121,7 @@
         });
         sub('Feedback', '#f39a1e', 610, 330, () => {
           head('Feedback', 40, 30);
-          note('Write each note with the time in the film, for example 01:02:14 · trim the pause before the line.', 40, 100, 560);
+          note('Drop each cut here as a video, then press Review on it: pause anywhere and pin a note to that moment. Export the notes as markers for DaVinci Resolve.', 40, 100, 560, '#f39a1e');
           col('New notes', [], 40, 190); col('Fixing', [], 320, 190); col('Done', [], 600, 190);
         });
         sub('Delivery', '#36a86d', 400, 550, () => {
@@ -126,6 +129,7 @@
           list('Deliverables', ['Master file', 'Online version', 'Vertical cut 9:16 for social', 'Trailer', 'Poster and stills', 'Subtitle file', 'Archive copy of the project and footage'], 40, 110, 320);
         });
       });
+      launch('breakdown', 40, 560, 320); launch('schedule', 400, 330, 300);
       list('Key dates', [{ t: 'Script locked', d: false, due: inDays(14) }, { t: 'First shoot day', d: false, due: inDays(30) }, { t: 'Picture lock', d: false, due: inDays(60) }, { t: 'Release', d: false, due: inDays(90) }], 40, 320, 320);
       cards.push({ id: N.uid(), _link: [pre.id, prod.id] }, { id: N.uid(), _link: [prod.id, post.id] });
     } },
@@ -184,7 +188,7 @@
     if (!N.P.canWrite) return;
     N.snap(); cards = []; parentId = null; t.build(); const b = N.B();
     const links = cards.filter(c => c._link); cards = cards.filter(c => !c._link);
-    b.cards.push(...cards); links.forEach(l => b.links.push({ id: N.uid(), from: l._link[0], to: l._link[1] })); if (b.title === 'Untitled board' || !b.title) b.title = t.name;
+    b.cards.push(...cards); if (t.after) t.after(b); links.forEach(l => b.links.push({ id: N.uid(), from: l._link[0], to: l._link[1] })); if (b.title === 'Untitled board' || !b.title) b.title = t.name;
     N.touch(); N.S.entering = true; N.render(); requestAnimationFrame(() => N.fit(1));
   }
   const empty = N.$('#empty');
