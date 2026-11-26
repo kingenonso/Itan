@@ -29,7 +29,7 @@
   };
   const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
   const chan = 'BroadcastChannel' in window ? new BroadcastChannel('boards-app') : null;
-  const listeners = [];
+  const listeners = [], taps = [];
   if (chan) chan.onmessage = e => { const m = e.data; if (m && m.type === 'docs') listeners.forEach(f => f(m.changes)); };
   const urls = new Map();
   const newId = () => 'm' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -47,12 +47,27 @@
     async put(key, value) {
       await tx('docs', 'readwrite', s => { s.put(value, key); });
       if (chan) chan.postMessage({ type: 'docs', changes: [[key, value]] });
+      taps.forEach(f => f([[key, value]]));
     },
     async del(key) {
       await tx('docs', 'readwrite', s => { s.delete(key); });
       if (chan) chan.postMessage({ type: 'docs', changes: [[key, null]] });
+      taps.forEach(f => f([[key, null]]));
     },
     onChange(fn) { listeners.push(fn); },
+    // Live teamwork: see this device's own writes, and bring in changes that came from other people
+    onWrite(fn) { taps.push(fn); },
+    async inject(changes) {
+      if (!changes.length) return;
+      await tx('docs', 'readwrite', s => { changes.forEach(([k, v]) => v === null ? s.delete(k) : s.put(v, k)); });
+      if (chan) chan.postMessage({ type: 'docs', changes });
+      listeners.forEach(f => f(changes));
+    },
+    async putMediaAs(id, blob) {
+      await tx('media', 'readwrite', s => { s.put(blob, id); });
+      if (urls.has(id)) { if (urls.get(id)) URL.revokeObjectURL(urls.get(id)); urls.delete(id); }
+    },
+    async hasMedia(id) { return tx('media', 'readonly', s => req(s.count(id))).then(n => n > 0); },
     async putMedia(blob) {
       const id = newId();
       await tx('media', 'readwrite', s => { s.put(blob, id); });

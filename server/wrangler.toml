@@ -1,0 +1,14 @@
+# Notera Live: the free teamwork server (Cloudflare Workers + Durable Objects, free plan).
+# Each shared board is one "room". Its boards, cards, pictures and videos are kept in that room's own SQLite database.
+name = "notera-live"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]

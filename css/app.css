@@ -405,3 +405,24 @@ body.presenting #world.spotlight>.card.spot{box-shadow:var(--float)}
 .dl{margin:8px 22px 0;padding:14px 16px;border-radius:14px;background:var(--paper2);display:grid;gap:6px}
 .dl span{font-size:13px;color:var(--mute)}
 .dl a.pri{justify-self:start;display:inline-flex;align-items:center;text-decoration:none;margin-top:4px}
+
+/* ---------- Live teamwork ---------- */
+.lv-on{gap:4px;padding-left:9px}
+.lv-dot{width:8px;height:8px;border-radius:50%;background:#2fbf71;box-shadow:0 0 0 0 rgba(47,191,113,.5);animation:lvpulse 2.4s infinite}
+.lv-on.off .lv-dot{background:var(--mute);animation:none}
+@keyframes lvpulse{0%{box-shadow:0 0 0 0 rgba(47,191,113,.45)}70%{box-shadow:0 0 0 7px rgba(47,191,113,0)}100%{box-shadow:0 0 0 0 rgba(47,191,113,0)}}
+.lv-face{width:24px;height:24px;border-radius:50%;background:var(--c);color:#fff;font-size:10px;font-weight:700;display:inline-grid;place-items:center;border:2px solid var(--paper);margin-left:-6px;flex:none;animation:rise .35s var(--spring)}
+.lv-face:first-of-type{margin-left:2px}
+.lv-face.away{opacity:.45}
+.lv-more{font-size:11px;color:var(--mute)}
+.lv-people{list-style:none;margin:4px 22px 8px;padding:0;display:grid;gap:8px}
+.lv-people li{display:flex;align-items:center;gap:10px;font-size:15px}
+.lv-people .lv-face{margin:0;width:30px;height:30px;font-size:12px}
+.lv-people small{color:var(--mute);margin-left:auto;font-size:12px}
+.lv-link{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 8px;align-items:center;margin:6px 22px 10px;padding:12px;border-radius:14px;background:var(--paper2)}
+.lv-link>div{grid-column:1/-1;display:flex;gap:8px;align-items:baseline}
+.lv-link small{color:var(--mute);font-size:12px}
+.lv-link input{font:13px var(--f);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:var(--paper);min-width:0}
+.lv-link .ib{border:1px solid var(--line);background:var(--paper);text-decoration:none;color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.lv-dot{animation:none}}
+body.lv-view #tb{display:none}
