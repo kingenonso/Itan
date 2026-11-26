@@ -18,6 +18,7 @@
       s.num = String(bd.length === out.length ? bd[i].num : byLoc ? byLoc.num : i + 1); });
     return out;
   }
+  F.scriptScenes = scenesOf;
   const shotsFor = num => F.allShots().map(x => x.c).filter(c => String(c.scene) === String(num)).sort((a, b) => String(a.letter).localeCompare(String(b.letter)));
   const circled = (d, c) => (d.takes || []).some(t => String(t.scene) === String(c.scene) && String(t.shot) === String(c.letter) && t.mark === 'circle') || c.status === 'done';
   // which lines a shot covers (by position in its scene)

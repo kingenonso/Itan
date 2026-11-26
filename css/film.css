@@ -623,3 +623,17 @@ body.sketching{overflow:hidden}
 .gs-prog i{position:absolute;inset:0 auto 0 0;width:0;background:var(--ultra-soft);transition:width .3s}
 .gs-prog span{position:relative;display:block;padding:8px 12px;font-size:13px}
 @media (max-width:760px){.cst-detail{grid-template-columns:1fr}.cst-fields{grid-template-columns:1fr}.cst-cmp{grid-template-columns:1fr 1fr}}
+
+/* ---------- Shot list from the script ---------- */
+.sl-go{border:1px solid var(--marigold) !important;color:var(--ink)}
+.sl-row0{padding:0 0 10px !important}
+.sl-list{max-height:58vh;overflow:auto;margin:6px 22px;display:grid;gap:14px}
+.sl-list h4{margin:0 0 6px;font-size:14px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.sl-list h4 b{font:800 22px var(--fd)}.sl-list h4 small{color:var(--mute);font-weight:400;font-size:12px}
+.sl-row{display:grid;grid-template-columns:22px 130px 170px 1fr;gap:8px;align-items:start;padding:8px 10px;border-radius:10px;background:var(--paper2);margin-bottom:4px;cursor:pointer;font-size:14px}
+.sl-row input{width:18px;height:18px;accent-color:var(--ultra);margin:1px 0 0}
+.sl-row:has(input:not(:checked)){opacity:.45}
+.sl-size{font-weight:700}.sl-spec{color:var(--mute);font-size:13px}
+.sl-text small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.sl-scene{border:1px dashed var(--marigold) !important;font-family:var(--f)}
+@media (max-width:700px){.sl-row{grid-template-columns:22px 1fr}.sl-spec,.sl-text{grid-column:2}}
