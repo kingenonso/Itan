@@ -1000,3 +1000,24 @@ body.filming .wx-banner{display:none}
 .pc-rep li small{font-size:11.5px;color:var(--mute)}.pc-rep li.long small{color:var(--warn-ink)}
 .pc-rep .pc-est{color:var(--bad-ink)}
 .pc.recording .pc-main canvas{outline:3px solid #e0352b}
+
+/* Script check */
+.hc-strip{width:100%;height:auto;display:block;margin-top:6px}
+.hc-strip g{cursor:default}.hc-strip g:hover rect{opacity:.75}
+.hc-q{stroke:var(--mute);stroke-dasharray:3 4}
+.hc-qt{font:600 11px var(--f);fill:var(--mute);text-anchor:middle}
+.hc-key{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:11.5px;color:var(--mute)}
+.hc-key i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:3px;vertical-align:-1px}
+.hc-notes{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px}
+.hc-notes li{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:12px;background:var(--deep);font-size:13.5px}
+.hc-notes li i{font-style:normal;font-weight:800;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;flex:none;font-size:12px}
+.hc-notes li.cost i{background:var(--warn-soft);color:var(--warn-ink)}.hc-notes li.story i{background:var(--ultra-soft);color:var(--ultra-ink)}.hc-notes li.write i{background:var(--good-soft);color:var(--good-ink)}
+.hc-notes li.good{background:var(--good-soft);color:var(--good-ink)}
+.hc-mx{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.hc-row{display:grid;grid-template-columns:110px 40px 1fr;gap:8px;align-items:center}
+.hc-row b{font:700 13px var(--fd);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hc-share{font-size:11.5px;color:var(--mute);text-align:right}
+.hc-row svg{width:100%;height:22px;background:var(--deep);border-radius:6px}.hc-row circle{fill:var(--ultra)}
+.hc-pricey{margin:6px 0;padding-left:18px;font-size:13px}.hc-pricey li{margin:4px 0}.hc-pricey small{color:var(--mute);margin-left:6px}
+.hc-dots{position:relative;height:22px;background:var(--deep);border-radius:6px}
+.hc-dots i{position:absolute;top:50%;width:var(--r);height:var(--r);border-radius:50%;background:var(--ultra);transform:translate(-50%,-50%)}
