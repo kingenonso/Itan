@@ -19,6 +19,13 @@
     const sun = at(-0.833), gold = at(6), blue = at(-4);
     return sun && { sunrise: sun[0], sunset: sun[1], noon: fromJulian(noon), goldAm: blue && gold ? [blue[0], gold[0]] : null, goldPm: blue && gold ? [gold[1], blue[1]] : null };
   };
+  // where the sun is in the sky at a moment: compass bearing (0 = north, 90 = east) and height above the horizon, in degrees
+  F.sunPos = (when, lat, lon) => {
+    const lw = rad * -lon, phi = rad * lat, d = toDays(+when), m = M(d), l = L(m), dc = dec(l);
+    const ra = Math.atan2(Math.sin(l) * Math.cos(e), Math.cos(l)), H = rad * (280.16 + 360.9856235 * d) - lw - ra;
+    const az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dc) * Math.cos(phi)), alt = Math.asin(Math.sin(phi) * Math.sin(dc) + Math.cos(phi) * Math.cos(dc) * Math.cos(H));
+    return { az: ((az / rad) + 180 + 360) % 360, alt: alt / rad };
+  };
   const fmt = (d, tz) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: tz || undefined });
   F.sunText = (dateStr, p) => {
     const s = F.sunTimes(dateStr, p.lat, p.lon); if (!s) return '';

@@ -2,7 +2,7 @@
    The two helper libraries load only when someone asks for an export. */
 (function () {
   const N = window.N;
-  const LIBS = { img: 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js', pdf: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js' };
+  const LIBS = { img: 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js', pdf: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', map: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', qr: 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js' };
   const loaded = {};
   const load = src => loaded[src] || (loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('offline')); }; document.head.append(s); }));
   const name = () => (N.B().title || 'board').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || 'board';
