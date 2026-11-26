@@ -25,7 +25,7 @@ const ICON={
  line:'<path d="M5 19L19 5M11 5h8v8"/>',
  shot:'<rect x="3.5" y="6" width="12" height="12" rx="2"/><path d="M15.5 10.5l5-3v9l-5-3"/>',
  voice:'<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/>'};
-const TOOLS=[['note','Note'],['heading','Heading'],['todo','Checklist'],['link','Link'],['image','Media'],['voice','Voice'],['board','Board'],['column','Column'],['swatch','Colour'],['shot','Shot'],['line','Line']];
+const TOOLS=[['note','Note'],['heading','Heading'],['todo','Checklist'],['link','Link'],['image','Pictures'],['voice','Voice'],['board','Board'],['column','Column'],['swatch','Colour'],['shot','Shot'],['line','Line']];
 const canvas=$('#canvas'),world=$('#world'),svg=$('#links'),ctx=$('#ctx');
 const S={boards:{},images:{},cur:'home',view:{},sel:new Set(),selLink:null,linkPt:null,connect:null,undo:[],redo:[],editSnapped:false,needRender:false};
 /* P.remote: what the store holds (key -> doc). P.sent: what we last saw/sent per key. P.pend: keys with writes in flight. */

@@ -1,6 +1,6 @@
 // Lets Itàn open without internet after the first visit. Bump VERSION when you change app files.
-const VERSION = 'itan-07010285'; // set by scripts/build-web.js
-const FILES = ['./', 'index.html', 'css/itan.min.css?v=07010285', 'js/config.js', 'js/itan.min.js?v=07010285', 'manifest.json', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
+const VERSION = 'itan-5c5da3c8'; // set by scripts/build-web.js
+const FILES = ['./', 'index.html', 'css/itan.min.css?v=5c5da3c8', 'js/config.js', 'js/itan.min.js?v=5c5da3c8', 'manifest.json', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== 'itan-inbox').map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

@@ -543,3 +543,26 @@ body.guesting>*:not(.guest):not(#toast):not(#dlg){display:none !important}
 .bk-restore input{flex:1;min-width:0;font:15px ui-monospace,monospace;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
 .bk-warn{background:var(--warn-soft);color:var(--warn-ink) !important;border-radius:12px;padding:10px 12px;margin:8px 22px !important}
 .bk-sec p{margin-left:0 !important;margin-right:0 !important;padding:0 !important}
+
+/* the top tools: one group on wide screens, one swipeable row on phones */
+#topTools{display:contents}
+/* phones: every "add" tool visible (two rows), nothing hidden off the edge */
+@media (max-width:640px){
+  #topTools{display:flex;gap:6px;flex:1 1 100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  #topTools::-webkit-scrollbar{display:none}
+  #topTools>*{flex:none}
+  #topTools .spacer{display:none}
+  #tb{flex-wrap:wrap;justify-content:center;align-items:center;row-gap:2px;width:calc(100vw - 16px);max-width:420px;padding:6px;bottom:10px;overflow:visible}
+  #tb .tool{width:calc((100% - 12px) / 6);min-width:48px;height:50px;font-size:10.5px}
+  #tb .tool svg{width:21px;height:21px}
+  #tb .tool:hover{transform:none}
+  #tb .dock-sep{display:none}
+  #zoom{bottom:132px}
+}
+@media (min-width:641px) and (max-width:1180px){
+  #topTools{display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+  #topTools::-webkit-scrollbar{display:none}
+  #topTools>*{flex:none}
+  #topTools .spacer{flex:1}
+}
+@media (max-width:640px){#toast{bottom:138px}body.filming #toast{bottom:24px}}
