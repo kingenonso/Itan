@@ -1,6 +1,6 @@
-# Notera Live: the free teamwork server (Cloudflare Workers + Durable Objects, free plan).
+# Itàn Live: the free teamwork server (Cloudflare Workers + Durable Objects, free plan).
 # Each shared board is one "room". Its boards, cards, pictures and videos are kept in that room's own SQLite database.
-name = "notera-live"
+name = "itan-live"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
 workers_dev = true

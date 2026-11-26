@@ -1,4 +1,4 @@
-# Builds the Notera desktop apps and attaches them to a GitHub Release.
+# Builds the Itàn desktop apps and attaches them to a GitHub Release.
 # Runs when the release branch is updated, when a version tag like v1.0.1 is pushed,
 # or by hand from the Actions tab. The version comes from src-tauri/tauri.conf.json.
 name: Desktop apps
@@ -53,11 +53,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: v__VERSION__
-          releaseName: 'Notera v__VERSION__'
+          releaseName: 'Itàn v__VERSION__'
           releaseBody: |
-            Download Notera for your computer:
+            Download Itàn for your computer:
             - **Windows:** the `.msi` or `-setup.exe` file. If Windows shows "Windows protected your PC", click **More info → Run anyway**.
-            - **Mac (Apple silicon and Intel):** the `.dmg` file. Open it and drag Notera to Applications. The first time, right-click Notera → **Open**, or go to System Settings → Privacy & Security → **Open Anyway**.
+            - **Mac (Apple silicon and Intel):** the `.dmg` file. Open it and drag Itàn to Applications. The first time, right-click Itàn → **Open**, or go to System Settings → Privacy & Security → **Open Anyway**.
             - **Linux:** the `.AppImage`, `.deb` or `.rpm` file.
 
             Phones: open the web app and tap **Get the app**.

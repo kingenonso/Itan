@@ -1,4 +1,4 @@
-/* Notera Live: lets several people work on the same board at the same time.
+/* Itàn Live: lets several people work on the same board at the same time.
    - A room holds one shared board and everything under it.
    - People join with an invite link carrying an edit key or a view key.
    - Changes travel over a WebSocket; pictures, videos and voice notes are uploaded once and stored in chunks.
@@ -16,7 +16,7 @@ export default {
   async fetch(req, env) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(req.url), p = url.pathname.split('/').filter(Boolean);
-    if (!p.length) return json({ ok: true, app: 'notera-live' });
+    if (!p.length) return json({ ok: true, app: 'itan-live' });
     if (p[0] !== 'rooms' || !ID.test(p[1] || '')) return json({ error: 'not found' }, 404);
     const stub = env.ROOMS.get(env.ROOMS.idFromName(p[1]));
     return stub.fetch(req);

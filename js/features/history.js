@@ -31,7 +31,7 @@
   async function open() {
     const b = N.B(); await capture(b, true);
     const list = (await N.Store.listHistory(b.id)).reverse();
-    if (list.length < 2) return N.toast('No earlier versions yet. Notera keeps one every few minutes while you edit.');
+    if (list.length < 2) return N.toast('No earlier versions yet. Itàn keeps one every few minutes while you edit.');
     const now = new Date();
     const label = t => { const d = new Date(t), same = d.toDateString() === now.toDateString(), y = new Date(now); y.setDate(y.getDate() - 1);
       return (same ? 'Today' : d.toDateString() === y.toDateString() ? 'Yesterday' : d.toLocaleDateString([], { day: 'numeric', month: 'short' })) + ', ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };

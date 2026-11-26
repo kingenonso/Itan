@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Notera</title>
-<meta name="description" content="Notera: free visual boards for notes, pictures, videos and plans. Saved on your own device.">
+<title>Itàn</title>
+<meta name="description" content="Itàn: free visual boards for notes, pictures, videos and plans. Saved on your own device.">
 <meta name="theme-color" content="#1f2125">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -26,7 +26,21 @@
     </aside>
   </main>
   <header id="top">
-    <div class="island" id="nav"><button class="mark" id="homeMark" title="Go to Home" aria-label="Go to Home">N</button><div id="crumbs"></div></div>
+    <div class="island" id="nav"><button class="mark" id="homeMark" title="Go to Home" aria-label="Go to Home"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="itan-bg-nav" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a4bff"/><stop offset="1" stop-color="#3424d6"/></linearGradient>
+    <radialGradient id="itan-gl-nav" cx=".28" cy=".18" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <clipPath id="itan-bar-nav"><rect x="-88" y="-25" width="176" height="50" rx="25"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#itan-bg-nav)"/>
+  <rect width="512" height="512" rx="116" fill="url(#itan-gl-nav)"/>
+  <g fill="none" stroke="#fff" stroke-width="58" stroke-linecap="round"><circle cx="240" cy="318" r="86"/><path d="M326 246 V397"/></g>
+  <g transform="translate(232 146) rotate(26)">
+    <rect x="-88" y="-25" width="176" height="50" rx="25" fill="#ffbd2e"/>
+    <g clip-path="url(#itan-bar-nav)" stroke="#fff" stroke-opacity=".55" stroke-width="14"><path d="M-30 -40 L-52 40 M14 -40 L-8 40 M58 -40 L36 40"/></g>
+    <circle cx="-60" cy="0" r="9" fill="#3424d6"/>
+  </g>
+</svg></button><div id="crumbs"></div></div>
     <div id="explain"></div>
     <div id="btools"></div>
     <span class="spacer"></span>
@@ -44,7 +58,21 @@
 <div class="ov" id="search" hidden><div class="panel"><input id="sq" placeholder="Search every board" autocomplete="off" aria-label="Search"><div id="sr"></div></div></div>
 <div class="ov" id="dlg" hidden><div class="panel" id="dlgp"></div></div>
 <div id="toast" hidden></div>
-<div id="load"><div class="mark">N</div></div>
+<div id="load"><div class="mark"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="itan-bg-load" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a4bff"/><stop offset="1" stop-color="#3424d6"/></linearGradient>
+    <radialGradient id="itan-gl-load" cx=".28" cy=".18" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <clipPath id="itan-bar-load"><rect x="-88" y="-25" width="176" height="50" rx="25"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#itan-bg-load)"/>
+  <rect width="512" height="512" rx="116" fill="url(#itan-gl-load)"/>
+  <g fill="none" stroke="#fff" stroke-width="58" stroke-linecap="round"><circle cx="240" cy="318" r="86"/><path d="M326 246 V397"/></g>
+  <g transform="translate(232 146) rotate(26)">
+    <rect x="-88" y="-25" width="176" height="50" rx="25" fill="#ffbd2e"/>
+    <g clip-path="url(#itan-bar-load)" stroke="#fff" stroke-opacity=".55" stroke-width="14"><path d="M-30 -40 L-52 40 M14 -40 L-8 40 M58 -40 L36 40"/></g>
+    <circle cx="-60" cy="0" r="9" fill="#3424d6"/>
+  </g>
+</svg></div></div>
 <input type="file" id="file" accept="image/*,video/*,audio/*" multiple hidden>
 <input type="file" id="boardFile" accept=".board" hidden>
 <script src="js/config.js"></script>

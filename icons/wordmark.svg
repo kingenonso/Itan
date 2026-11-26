@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 214">
+  <defs><clipPath id="itan-wb"><rect x="-33" y="-10" width="66" height="20" rx="10"/></clipPath></defs>
+  <g fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 111 V189"/>
+    <path d="M68 58 V158 Q68 189 98 189"/><path d="M48 111 H96"/>
+    <circle cx="153" cy="150" r="39"/><path d="M192 116 V189"/>
+    <path d="M240 189 V150 A39 39 0 0 1 318 150 V189"/><path d="M240 112 V150"/>
+  </g>
+  <circle cx="20" cy="64" r="14" fill="currentColor"/>
+  <g transform="translate(158 66) rotate(26)">
+    <rect x="-33" y="-10" width="66" height="20" rx="10" fill="#ffbd2e"/>
+    <g clip-path="url(#itan-wb)" stroke="#fff" stroke-opacity=".6" stroke-width="5.5"><path d="M-11 -16 L-19 16 M6 -16 L-2 16 M23 -16 L15 16"/></g>
+    <circle cx="-22" cy="0" r="3.6" fill="#4636ef"/>
+  </g>
+</svg>

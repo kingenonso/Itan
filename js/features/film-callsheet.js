@@ -42,7 +42,7 @@
           ${crew.length ? `<h3>Crew</h3><table class="ftable"><thead><tr><th>Job</th><th>Name</th><th>Phone</th></tr></thead><tbody>${crew.map(p => `<tr><td>${esc(p.role || '')}</td><td>${esc(p.name || '')}</td><td>${esc(p.phone || '')}</td></tr>`).join('')}</tbody></table>` : ''}
           ${['props', 'wardrobe', 'makeup', 'vehicles', 'effects', 'extras'].some(k => needs(k).length) ? `<h3>Needed today</h3><div class="cs-needs">${[['props', 'Props'], ['wardrobe', 'Wardrobe'], ['makeup', 'Hair and makeup'], ['vehicles', 'Vehicles'], ['effects', 'Effects'], ['extras', 'Extras']].filter(([k]) => needs(k).length).map(([k, l]) => `<div><small>${l}</small><p>${esc(needs(k).join(', '))}</p></div>`).join('')}</div>` : ''}
           ${day.notes ? `<h3>Notes</h3><p class="cs-notes">${esc(day.notes)}</p>` : ''}
-          <footer>Made with Notera</footer>
+          <footer>Made with Itàn</footer>
         </div></section></div>`;
     el.onclick = e => {
       const dd = e.target.closest('[data-csday]'); if (dd) { cur = dd.dataset.csday; return F.refresh(); }

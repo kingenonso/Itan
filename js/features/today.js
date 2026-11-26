@@ -1,5 +1,5 @@
 /* Today: every unticked checklist item from every board in one list, grouped by due date.
-   Reminders show a notification while Notera is open (or installed and running). */
+   Reminders show a notification while Itàn is open (or installed and running). */
 (function () {
   const N = window.N, $ = N.$, esc = N.esc;
   const btn = $('#bToday');
@@ -49,7 +49,7 @@
     const m = N.modal(`<h2>Today</h2><p>Unticked items from every checklist, soonest first. Add a date to any item with the calendar button beside it.</p>
       <div class="tbody">${body || '<div class="nores">Nothing left to do. Add a checklist to any board to see its items here.</div>'}</div>
       <div class="row">${perm === 'default' ? '<button class="pri" id="tRem">Turn on reminders</button>' : ''}<button data-close>Close</button></div>
-      ${perm === 'granted' ? '<p class="fine">Reminders are on. They appear while Notera is open or installed on this device.</p>' : perm === 'denied' ? '<p class="fine">Reminders are blocked in this browser’s settings for this site.</p>' : ''}`);
+      ${perm === 'granted' ? '<p class="fine">Reminders are on. They appear while Itàn is open or installed on this device.</p>' : perm === 'denied' ? '<p class="fine">Reminders are blocked in this browser’s settings for this site.</p>' : ''}`);
     m.classList.add('wide');
     m.querySelector('[data-close]').onclick = N.closeOv;
     m.addEventListener('click', e => {
@@ -70,18 +70,18 @@
   async function remind() {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     const g = groups(), due = [...g.late, ...g.today], day = N.todayStr();
-    let seen = {}; try { seen = JSON.parse(localStorage.getItem('notera:reminded') || '{}'); } catch (e) {}
+    let seen = {}; try { seen = JSON.parse(localStorage.getItem('itan:reminded') || '{}'); } catch (e) {}
     for (const k of Object.keys(seen)) if (seen[k] !== day) delete seen[k];
     const fresh = due.filter(x => seen[x.c.id + '|' + x.it.t] !== day);
     if (!fresh.length) return;
     fresh.forEach(x => seen[x.c.id + '|' + x.it.t] = day);
-    try { localStorage.setItem('notera:reminded', JSON.stringify(seen)); } catch (e) {}
+    try { localStorage.setItem('itan:reminded', JSON.stringify(seen)); } catch (e) {}
     const title = fresh.length === 1 ? fresh[0].it.t : `${fresh.length} things due`;
     const body = fresh.length === 1 ? `${fresh[0].it.due < day ? 'Overdue' : 'Due today'} · ${fresh[0].c.text || 'Checklist'}` : fresh.slice(0, 3).map(x => '• ' + x.it.t).join('\n');
     try {
       const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
-      if (reg) reg.showNotification(title, { body, icon: 'icons/icon-192.png', tag: 'notera-due' });
-      else new Notification(title, { body, icon: 'icons/icon-192.png', tag: 'notera-due' });
+      if (reg) reg.showNotification(title, { body, icon: 'icons/icon-192.png', tag: 'itan-due' });
+      else new Notification(title, { body, icon: 'icons/icon-192.png', tag: 'itan-due' });
     } catch (e) {}
   }
   setTimeout(remind, 4000);

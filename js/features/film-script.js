@@ -110,7 +110,7 @@
     const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'in', format: 'letter' }); doc.setFont('courier', 'normal'); doc.setFontSize(12);
     const LH = 1 / 6, TOP = 1, BOTTOM = 10, M = { scene: [1.5, 6], action: [1.5, 6], char: [3.7, 2.8], paren: [3.1, 2.4], dial: [2.5, 3.5], trans: [6, 1.5] };
     // title page
-    doc.text(String(d.title || 'Untitled').toUpperCase(), 4.25, 4, { align: 'center' }); doc.text('Written in Notera', 4.25, 4.5, { align: 'center' });
+    doc.text(String(d.title || 'Untitled').toUpperCase(), 4.25, 4, { align: 'center' }); doc.text('Written in Itàn', 4.25, 4.5, { align: 'center' });
     let page = 1, y = TOP; doc.addPage();
     const newPage = () => { doc.addPage(); page++; y = TOP; doc.text(page + '.', 7.5, 0.5, { align: 'right' }); };
     d.screenplay.forEach((l, i) => {

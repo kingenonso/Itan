@@ -1,8 +1,8 @@
 {
-  "name": "notera",
-  "version": "1.3.0",
+  "name": "itan",
+  "version": "1.4.0",
   "private": true,
-  "description": "Notera desktop app (Windows, Mac, Linux) built with Tauri around the web app in this folder",
+  "description": "Itàn desktop app (Windows, Mac, Linux) built with Tauri around the web app in this folder",
   "scripts": {
     "prepare-web": "node scripts/prepare-web.js",
     "tauri": "tauri"

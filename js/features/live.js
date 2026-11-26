@@ -1,11 +1,11 @@
 /* Live teamwork: share a board (and everything inside it) so several people work on it at the same time.
    The person sharing gets two invite links: one to edit, one to only view.
-   Changes go through the free Notera Live server (server/ folder, on Cloudflare) and arrive for everyone within a second.
+   Changes go through the free Itàn Live server (server/ folder, on Cloudflare) and arrive for everyone within a second.
    Each person still keeps a full copy on their own device, so it keeps working offline and catches up when back online. */
 (function () {
   const N = window.N, esc = N.esc, Store = N.Store, $ = N.$;
   const API = (window.APP_CONFIG && window.APP_CONFIG.live) || '';
-  const WEB = (window.APP_CONFIG && window.APP_CONFIG.web) || 'https://kingenonso.github.io/Notera/';
+  const WEB = (window.APP_CONFIG && window.APP_CONFIG.web) || 'https://kingenonso.github.io/Itan/';
   const COLORS = ['#4636ef', '#ff5a3c', '#36a86d', '#e0508f', '#f39a1e', '#2a9ec4', '#8f5ae8', '#d14b4b'];
   const MAX_UPLOAD = 95 * 1024 * 1024;
   const key = () => Array.from(crypto.getRandomValues(new Uint8Array(18)), b => 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 56]).join('');
@@ -175,7 +175,7 @@
     const r = { room: key().slice(0, 16), key: key(), view: key(), role: 'edit', root, parent: b.parent || 'home', title: b.title || 'Untitled board', outbox: {}, joined: Date.now(), owner: true };
     N.status('Setting up…');
     try { const res = await fetch(`${API}/rooms/${r.room}/init`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ edit: r.key, view: r.view, root, title: r.title }) }); if (!res.ok) throw new Error(); }
-    catch (e) { N.settled(); return N.toast('Couldn’t reach the Notera Live server. Check your internet and try again.'); }
+    catch (e) { N.settled(); return N.toast('Couldn’t reach the Itàn Live server. Check your internet and try again.'); }
     N.settled(); N.flushNow();
     rooms.push(r); roomKeys(r).forEach(k => r.outbox[k] = 1); saveRooms(); connect(r); N.render();
     panel();
@@ -217,7 +217,7 @@
       return;
     }
     const c = live.get(r.room), others = c ? c.people : [];
-    const linkRow = (label, k, hint) => `<div class="lv-link"><div><b>${label}</b><small>${hint}</small></div><input readonly value="${esc(linkFor(r, k))}" aria-label="${label}"><button class="ib" data-copy="${esc(linkFor(r, k))}">Copy</button><a class="ib" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Join “${r.title}” on Notera: ${linkFor(r, k)}`)}">WhatsApp</a></div>`;
+    const linkRow = (label, k, hint) => `<div class="lv-link"><div><b>${label}</b><small>${hint}</small></div><input readonly value="${esc(linkFor(r, k))}" aria-label="${label}"><button class="ib" data-copy="${esc(linkFor(r, k))}">Copy</button><a class="ib" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Join “${r.title}” on Itàn: ${linkFor(r, k)}`)}">WhatsApp</a></div>`;
     const m = N.modal(`<h2>${esc(r.title || 'Shared board')}</h2><p>${c && c.open ? (others.length ? `${others.length} other${others.length === 1 ? ' person is' : ' people are'} here now.` : 'You’re the only one here right now.') : 'Connecting… your changes are kept and sent when you’re back online.'}${r.role === 'view' ? ' You can view this board but not change it.' : ''}</p>
       ${others.length ? `<ul class="lv-people">${others.map(p => `<li><span class="lv-face" style="--c:${esc(p.color)}">${esc(initials(p.name))}</span>${esc(p.name)}<small>${p.role === 'view' ? 'viewing' : 'editing'}${p.where && N.S.boards[p.where] ? ' · on “' + esc(N.S.boards[p.where].title || 'Untitled') + '”' : ''}</small></li>`).join('')}</ul>` : ''}
       ${r.owner ? linkRow('Edit link', r.key, 'Can add and change things') + linkRow('View link', r.view, 'Can look but not change') : r.role === 'edit' ? linkRow('Invite link', r.key, 'Anyone with it can edit') : ''}

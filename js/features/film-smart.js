@@ -81,7 +81,7 @@
     const total = [...sug.values()].reduce((n, o) => n + Object.values(o).reduce((m, a) => m + a.length, 0), 0);
     if (!total) return N.toast('No new suggestions. Your breakdown already covers what was found.');
     const label = (k, v) => k === 'cast' ? ((F.person(d, v) || {}).role || v) : v;
-    const m = N.modal(`<h2>Suggested tags</h2><p>${total} suggestion${total === 1 ? '' : 's'} across ${[...sug.values()].filter(o => Object.keys(o).length).length} scenes${useAI ? ', from Notera and Gemini' : ''}. Tap any you don’t want to switch them off, then add the rest.</p>
+    const m = N.modal(`<h2>Suggested tags</h2><p>${total} suggestion${total === 1 ? '' : 's'} across ${[...sug.values()].filter(o => Object.keys(o).length).length} scenes${useAI ? ', from Itàn and Gemini' : ''}. Tap any you don’t want to switch them off, then add the rest.</p>
       <div class="sg-list">${scenes.filter(s => Object.keys(sug.get(s.id)).length).map(s => { const o = sug.get(s.id);
         return `<section class="sg-scene"><h4><span class="strip ${F.stripClass(s)}" aria-hidden="true"></span>${esc(s.num)}. ${esc(F.sceneLabel(s))}</h4><div class="chips">${F.CATS.filter(([k]) => o[k]).map(([k]) => o[k].map(v => `<button class="chip tg-${k} sg on" data-s="${esc(s.id)}" data-k="${k}" data-v="${esc(v)}" aria-pressed="true" title="${esc(F.CATS.find(c => c[0] === k)[1])}">${esc(label(k, v))}</button>`).join('')).join('')}</div></section>`; }).join('')}</div>
       <div class="row"><button class="pri" id="sgAdd">Add selected tags</button><button id="sgNone">Switch all off</button><button data-close>Cancel</button></div>`);
@@ -102,7 +102,7 @@
       <ol class="gm-steps"><li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with a Google account.</li><li>Choose Create API key and copy it.</li><li>Paste it below.</li></ol>
       <label>Your Gemini key<input id="gmKey" type="password" value="${esc(key)}" placeholder="Paste your key" autocomplete="off" spellcheck="false"></label>
       <label>Model<input id="gmModel" value="${esc(model)}" spellcheck="false"></label>
-      <p class="fhint">On Google’s free plan, Google may use what you send to improve its products. Don’t use it for a script you’ve promised to keep private. Each check sends your scene text to Google; nothing else from Notera is sent.</p>
+      <p class="fhint">On Google’s free plan, Google may use what you send to improve its products. Don’t use it for a script you’ve promised to keep private. Each check sends your scene text to Google; nothing else from Itàn is sent.</p>
       <div class="row"><button class="pri" id="gmSave">Save and check</button>${key ? '<button id="gmForget">Remove key</button>' : ''}<button data-close>Cancel</button></div>`);
     m.querySelector('[data-close]').onclick = N.closeOv;
     m.querySelector('#gmSave').onclick = async () => { const k = m.querySelector('#gmKey').value.trim(); if (!k) return N.toast('Paste your key first'); await N.Store.setKV('geminiKey', k); await N.Store.setKV('geminiModel', m.querySelector('#gmModel').value.trim() || MODEL_DEFAULT); N.closeOv(); run(F.data(), true); };

@@ -1,6 +1,6 @@
 /* Sharing: send boards through the phone's share sheet (WhatsApp, Telegram, email…),
    and receive pictures, videos, audio, links, text and .board files from other apps
-   when Notera is installed (they land on an "Inbox" board). */
+   when Itàn is installed (they land on an "Inbox" board). */
 (function () {
   const N = window.N, $ = N.$, esc = N.esc;
   N.hooks.shareExtras = N.hooks.shareExtras || [];
@@ -9,7 +9,7 @@
     const file = await N.exportBoard(rootId, 'share');
     const title = (N.S.boards[rootId].title || 'Board');
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title, text: `“${title}” from Notera. Open it in Notera with Share → Open a board file.` }); return; }
+      try { await navigator.share({ files: [file], title, text: `“${title}” from Itàn. Open it in Itàn with Share → Open a board file.` }); return; }
       catch (e) { if (e && e.name === 'AbortError') return; }
     }
     // No share sheet on this device: save the file instead
@@ -21,9 +21,9 @@
   $('#bShare').onclick = () => {
     const cur = N.B(), canSheet = !!(navigator.canShare && navigator.share);
     const extras = N.hooks.shareExtras.map((x, i) => `<button data-x="${i}">${esc(x.label)}</button>`).join('');
-    const m = N.modal(`<h2>Share</h2><p>${canSheet ? 'Send a board straight to WhatsApp, Telegram, email or anywhere else on this device. ' : ''}The other person opens it in Notera with “Open a board file”. Pictures, videos and voice notes go inside the file.</p>
+    const m = N.modal(`<h2>Share</h2><p>${canSheet ? 'Send a board straight to WhatsApp, Telegram, email or anywhere else on this device. ' : ''}The other person opens it in Itàn with “Open a board file”. Pictures, videos and voice notes go inside the file.</p>
       <div class="row"><button class="pri" id="shCur">${canSheet ? 'Send' : 'Download'} “${esc(cur.title || 'Untitled board')}”</button><button id="shAll">${canSheet ? 'Send' : 'Download'} everything</button><button id="shOpen">Open a board file</button></div>
-      ${extras ? `<p class="fine" style="margin-bottom:0">Or save it for people who don’t use Notera:</p><div class="row">${extras}</div>` : ''}
+      ${extras ? `<p class="fine" style="margin-bottom:0">Or save it for people who don’t use Itàn:</p><div class="row">${extras}</div>` : ''}
       <div class="row" style="padding-top:0"><button data-close>Close</button></div>`);
     m.querySelector('[data-close]').onclick = N.closeOv;
     m.querySelector('#shCur').onclick = () => { N.closeOv(); send(N.S.cur); };
@@ -35,7 +35,7 @@
   // Receive from other apps (installed app on Android/desktop Chrome and Edge)
   async function inbox() {
     if (!('caches' in window)) return;
-    const c = await caches.open('notera-inbox'); const meta = await c.match('inbox/meta'); if (!meta) return;
+    const c = await caches.open('itan-inbox'); const meta = await c.match('inbox/meta'); if (!meta) return;
     const info = await meta.json().catch(() => ({})); await c.delete('inbox/meta');
     const S = N.S;
     if (!S.boards.inbox) {

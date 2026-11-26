@@ -1,4 +1,4 @@
-/* Save a board as a picture (PNG) or a PDF, for people who don't use Notera.
+/* Save a board as a picture (PNG) or a PDF, for people who don't use Itàn.
    The two helper libraries load only when someone asks for an export. */
 (function () {
   const N = window.N;

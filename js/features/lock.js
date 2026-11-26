@@ -45,7 +45,7 @@
       if (!/^\d{4,8}$/.test(a)) return m.querySelector('#pinErr').textContent = 'Use 4 to 8 digits.';
       if (a !== c) return m.querySelector('#pinErr').textContent = 'The two PINs don’t match.';
       const salt = N.uid() + N.uid(); N.snap(); b.extra.lock = { salt, hash: await hash(a, salt) }; open.add(b.id); N.touch(); N.closeOv(); N.render();
-      N.toast('Locked. It stays open until you lock it again or close Notera.');
+      N.toast('Locked. It stays open until you lock it again or close Itàn.');
     };
   }
   N.hooks.tools.push(b => {

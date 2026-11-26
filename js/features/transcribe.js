@@ -72,7 +72,7 @@
   N.hooks.transcribe = null; // handled by the board scan above
 
   async function enable() {
-    const m = N.modal(`<h2>Turn on voice to text</h2><p>Notera can write out what you say in voice notes, board explanations and walkthroughs, so you can read them quickly and find them in search.</p>
+    const m = N.modal(`<h2>Turn on voice to text</h2><p>Itàn can write out what you say in voice notes, board explanations and walkthroughs, so you can read them quickly and find them in search.</p>
       <p>It works on this device, without sending your voice anywhere. The first time, it downloads a speech model of about 80 MB, so use Wi-Fi if data is expensive. After that it works offline.</p>
       <div class="row"><button class="pri" id="sttOn">Download and turn on</button><button data-close>Not now</button></div>`);
     m.querySelector('[data-close]').onclick = N.closeOv;

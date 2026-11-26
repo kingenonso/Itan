@@ -11,7 +11,7 @@
   F.start = (board = N.B()) => { if (!board.extra.film) { N.snap(); board.extra.film = blank(board.title); N.touch(); } return board; };
   F.change = (fn, quiet) => { const d = F.data(); if (!d) return; N.snap(); fn(d); N.touch(); if (!quiet) F.refresh(); };
   F.uid = () => N.uid();
-  // Ask for one line of text in a Notera dialog (browser prompts are blocked in some places)
+  // Ask for one line of text in a Itàn dialog (browser prompts are blocked in some places)
   F.ask = (title, placeholder, value = '') => new Promise(res => {
     const m = N.modal(`<h2>${esc(title)}</h2><form class="pinf askf"><input id="askIn" value="${esc(value)}" placeholder="${esc(placeholder || '')}" autocomplete="off"><button class="pri">OK</button></form><div class="row" style="padding-top:8px"><button data-close>Cancel</button></div>`);
     N.S.confirmRes = () => res(null);
