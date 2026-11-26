@@ -16,7 +16,7 @@ Free visual boards for notes, to-do lists, links, pictures, videos and plans, in
 | **Android** | Open the web app in Chrome → **Get the app** → **Install** |
 | **Windows** | Download the installer from [Releases](https://github.com/kingenonso/Itan/releases/latest), or install from Edge or Chrome |
 | **Mac** | Download the `.dmg` from [Releases](https://github.com/kingenonso/Itan/releases/latest), or in Safari choose File → Add to Dock |
-| **Linux** | `.AppImage`, `.deb` or `.rpm` from [Releases](https://github.com/kingenonso/Itan/releases/latest) |
+| **Linux** | `.AppImage` or `.deb` from [Releases](https://github.com/kingenonso/Itan/releases/latest) |
 
 The desktop installers aren't signed yet, so Windows and Mac ask you to confirm the first time (Windows: **More info → Run anyway**; Mac: right-click → **Open**). App store listings are explained in [STORES.md](STORES.md).
 
