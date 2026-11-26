@@ -1,6 +1,8 @@
 {
 const $=s=>document.querySelector(s);
 const N=window.N={hooks:{render:[],saved:[],beforeOpen:async()=>true,isLocked:()=>false,snapDrag:()=>{},dragEnd:()=>{},historyMedia:async()=>[],ready:[],cardTypes:{},ctxExtras:[],ctxAct:{},cardBadges:[]}};
+// the address the app was opened with (invite and guest links), kept before opening a board changes it
+N.startHash=location.hash;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -534,6 +536,8 @@ $('#homeMark').addEventListener('click',()=>openBoard('home'));
 /* ---------- add-on features live in js/features/*.js and use this ---------- */
 Object.assign(N,{TYPES,MINW,DEFW,EH,TN,cardHTML,dropTarget,$,esc,uid,clamp,okc,okId,S,P,Store,B,find,el,V,render,applyView,drawLinks,linksSoon,touch,snap,show,openBoard,modal,closeOv,confirmBox,toast,status,settled,worldPt,centerPt,wrect,recordVoice,newCard,addCard,fit,saveViewSoon,collect,normalize,pathOf,mb,ICON,TOOLS,DEFW,focusCard,refreshSel,exportBoard,importBoardFile,isEditing,flushNow,todayStr,dueLabel,boardMedia,mediaTag,canvas,world,requestRender,addMedia});
 /* ---------- start ---------- */
-load().then(()=>{$('#load').hidden=true;const h=location.hash.slice(1);show(S.boards[h]?h:'home');N.hooks.ready.forEach(f=>{try{f()}catch(e){console.error(e)}})});
+// start once every script on the page (all the features) has loaded, so each one's start-up step runs
+const boot=()=>load().catch(e=>console.error('load',e)).then(()=>{$('#load').hidden=true;const h=location.hash.slice(1);try{show(S.boards[h]?h:'home')}catch(e){console.error('show',e)}N.hooks.ready.forEach(f=>{try{f()}catch(e){console.error(e)}})});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 }
 

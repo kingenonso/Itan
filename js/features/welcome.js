@@ -147,7 +147,7 @@ Tunde squeezes onto the back seat. He opens the envelope again and smiles.
   // first run: welcome brand-new users only (not people with boards already, and not people opening a link)
   N.hooks.ready.push(() => {
     let seen = false; try { seen = !!localStorage.getItem('itan:welcomed'); } catch (e) {}
-    if (seen || /^#(join|review|crew)=/.test(location.hash) || document.body.classList.contains('guesting') || (N.live && N.live.joining)) return;
+    if (seen || /^#(join|review|crew|cast)=/.test(N.startHash || location.hash) || document.body.classList.contains('guesting') || (N.live && N.live.joining)) return;
     const own = [...N.P.remote.keys()].length;
     if (own > 0) { try { localStorage.setItem('itan:welcomed', '1'); } catch (e) {} return; }
     setTimeout(() => { if (!document.querySelector('#dlg:not([hidden])') && !document.body.classList.contains('guesting')) welcome(); }, 500);

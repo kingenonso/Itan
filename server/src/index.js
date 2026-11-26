@@ -5,12 +5,14 @@
    Everything stays within Cloudflare's free plan (Durable Objects with SQLite storage). */
 import { DurableObject } from 'cloudflare:workers';
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,PUT,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,X-Key,X-Type,Range' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,X-Key,X-Type,Range' };
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 const ID = /^[A-Za-z0-9_-]{8,64}$/;
 const CHUNK = 1024 * 1024;            // 1 MB per stored piece (SQLite rows can hold up to 2 MB)
 const MAX_FILE = 95 * 1024 * 1024;    // Workers accept uploads up to 100 MB on the free plan
 const MAX_DOC = 512 * 1024;           // one board or card record
+const GUEST_FILE = 60 * 1024 * 1024;  // a self-tape or headshot sent by someone outside the team
+const GUEST_ROOM = 1536 * 1024 * 1024; // all guest uploads in one casting call
 
 export default {
   async fetch(req, env) {
@@ -46,6 +48,8 @@ export class Room extends DurableObject {
       const b = await req.json().catch(() => ({}));
       if (!ID.test(b.edit || '') || !ID.test(b.view || '') || !ID.test(b.root || '')) return json({ error: 'bad request' }, 400);
       for (const k of ['edit', 'view', 'root', 'title']) this.sql.exec('INSERT OR REPLACE INTO meta VALUES (?,?)', k, String(b[k] || '').slice(0, 200));
+      // guests may upload files (casting self-tapes and headshots), within limits
+      if (b.guestUpload) this.sql.exec('INSERT OR REPLACE INTO meta VALUES (?,?)', 'guestUpload', '1');
       this.sql.exec('INSERT OR REPLACE INTO meta VALUES (?,?)', 'created', String(Date.now()));
       return json({ ok: true });
     }
@@ -114,11 +118,19 @@ export class Room extends DurableObject {
         if (rng) h['Content-Range'] = `bytes ${start}-${end}/${size}`;
         return new Response(body, { status: rng ? 206 : 200, headers: h });
       }
-      if (req.method === 'PUT') {
+      if (req.method === 'DELETE') {
         if (role !== 'edit') return json({ error: 'view only' }, 403);
-        if (this.sql.exec('SELECT 1 FROM media WHERE id=? AND done=1', id).toArray().length) return json({ ok: true, had: true });
-        const len = +req.headers.get('Content-Length') || 0; if (len > MAX_FILE) return json({ error: 'too big' }, 413);
-        const buf = new Uint8Array(await req.arrayBuffer()); if (buf.length > MAX_FILE) return json({ error: 'too big' }, 413);
+        this.sql.exec('DELETE FROM chunks WHERE id=?', id); this.sql.exec('DELETE FROM media WHERE id=?', id); return json({ ok: true });
+      }
+      if (req.method === 'PUT') {
+        const guest = role !== 'edit';
+        if (guest && this.meta('guestUpload') !== '1') return json({ error: 'view only' }, 403);
+        const replace = !guest && url.searchParams.get('replace') === '1';
+        if (!replace && this.sql.exec('SELECT 1 FROM media WHERE id=? AND done=1', id).toArray().length) return json({ ok: true, had: true });
+        const cap = guest ? GUEST_FILE : MAX_FILE;
+        const len = +req.headers.get('Content-Length') || 0; if (len > cap) return json({ error: 'too big' }, 413);
+        if (guest) { const used = this.sql.exec('SELECT COALESCE(SUM(size),0) AS n FROM media').toArray()[0].n; if (used + len > GUEST_ROOM) return json({ error: 'full' }, 507); }
+        const buf = new Uint8Array(await req.arrayBuffer()); if (buf.length > cap) return json({ error: 'too big' }, 413);
         const parts = Math.max(1, Math.ceil(buf.length / CHUNK));
         this.sql.exec('DELETE FROM chunks WHERE id=?', id);
         for (let n = 0; n < parts; n++) this.sql.exec('INSERT INTO chunks VALUES (?,?,?)', id, n, buf.subarray(n * CHUNK, (n + 1) * CHUNK));

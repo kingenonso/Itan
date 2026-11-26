@@ -86,7 +86,7 @@
       const out = [];
       await tx('media', 'readonly', s => {
         const kr = s.getAllKeys(), vr = s.getAll();
-        return Promise.all([req(kr), req(vr)]).then(([keys, vals]) => keys.forEach((k, i) => out.push({ id: k, size: vals[i] ? vals[i].size : 0 })));
+        return Promise.all([req(kr), req(vr)]).then(([keys, vals]) => keys.forEach((k, i) => out.push({ id: k, size: vals[i] ? vals[i].size : 0, type: vals[i] ? vals[i].type || '' : '' })));
       });
       return out;
     },

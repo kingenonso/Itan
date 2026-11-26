@@ -51,7 +51,7 @@
   N.hooks.render.push(() => { if (!ws) return; const d = F.data(); if (!d) return; const snap = JSON.stringify(d); if (snap === lastSnap) return; if (N.isEditing() && ws.contains(document.activeElement)) return; lastSnap = snap; F.refresh(); });
   // the film's tools, grouped by stage of the film
   const STAGES = [['prep', 'Prep'], ['shoot', 'Shoot'], ['post', 'Post']];
-  const STAGE_OF = { script: 'prep', lined: 'prep', breakdown: 'prep', shots: 'prep', schedule: 'prep', budget: 'prep', people: 'prep', callsheets: 'shoot', set: 'shoot', takes: 'shoot', camera: 'shoot', reports: 'shoot', post: 'post', fest: 'post' };
+  const STAGE_OF = { script: 'prep', lined: 'prep', breakdown: 'prep', shots: 'prep', schedule: 'prep', budget: 'prep', people: 'prep', casting: 'prep', callsheets: 'shoot', set: 'shoot', takes: 'shoot', camera: 'shoot', reports: 'shoot', post: 'post', fest: 'post' };
   F.stageOf = id => STAGE_OF[id] || 'prep';
   const lastIn = {};
   F.refresh = () => {

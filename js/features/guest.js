@@ -13,15 +13,17 @@
   const linkOf = (kind, g) => `${base()}#${kind}=${g.room}.${g.view}`;
   const api = (g, path, opt = {}) => fetch(`${API}/rooms/${g.room}/${path}`, { ...opt, headers: { 'X-Key': opt.key || g.key, ...(opt.headers || {}) } });
   const short = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-  async function makeRoom(root, title) {
+  async function makeRoom(root, title, extra) {
     const g = { room: rnd(16), key: rnd(18), view: rnd(18) };
-    const r = await fetch(`${API}/rooms/${g.room}/init`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ edit: g.key, view: g.view, root, title: String(title || '').slice(0, 150) }) });
+    const r = await fetch(`${API}/rooms/${g.room}/init`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ edit: g.key, view: g.view, root, title: String(title || '').slice(0, 150), ...(extra || {}) }) });
     if (!r.ok) throw new Error('init'); return g;
   }
   const findCard = id => { for (const b of Object.values(S.boards)) { const c = b.cards.find(x => x.id === id); if (c) return c; } return null; };
   const linkBox = (label, url, msg) => `<div class="lv-link"><div><b>${label}</b></div><input readonly value="${esc(url)}" aria-label="${label}"><button class="ib" data-copy="${esc(url)}">Copy</button><a class="ib" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg + ' ' + url)}">WhatsApp</a></div>`;
   const wireCopy = m => m.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); } catch (e) { b.previousElementSibling.select(); document.execCommand('copy'); } N.toast('Link copied'); });
 
+  N.guestKit = { makeRoom, api, linkOf, linkBox, wireCopy, API, short };
+  N.guestPages = N.guestPages || {};
   /* ================= approval links (owner side) ================= */
   F.approval = async (cardId) => {
     if (!API) return N.toast('Approval links need the Itàn Live server');
@@ -175,6 +177,7 @@
         const o = { kind: 'signup', name: fd.get('name').trim(), job: fd.get('job').trim(), phone: fd.get('phone').trim(), days: fd.getAll('days'), note: fd.get('note').trim() };
         localStorage.setItem('itan:guestName', o.name);
         try { await send(o); body.innerHTML = `<h1>Thanks, ${esc(o.name.split(' ')[0])}!</h1><p>Your details went to the team for “${esc(f.title || 'the film')}”. They’ll be in touch.</p>`; } catch (x) { N.toast('Couldn’t send. Check your internet.'); } };
+    } else if (N.guestPages[kind] && f.kind === kind) { N.guestPages[kind](body, f, g, key, send);
     } else body.innerHTML = `<h1>This link isn’t working</h1><p>Ask the person who sent it for a new one.</p>`;
   }
 
@@ -182,7 +185,7 @@
   F.approvalLabel = c => c.approval ? ({ waiting: ' · waiting for approval', approved: ' · approved ✓', changes: ' · changes asked' }[c.approval.status] || '') : '';
 
   N.hooks.ready.push(() => {
-    const h = location.hash.match(/^#(review|crew)=([A-Za-z0-9_-]{8,64})\.([A-Za-z0-9_-]{8,64})$/);
+    const h = (N.startHash || location.hash).match(/^#(review|crew|cast)=([A-Za-z0-9_-]{8,64})\.([A-Za-z0-9_-]{8,64})$/);
     if (h) { guest(h[1], h[2], h[3]); return; }
     setTimeout(syncAll, 3000);
     setInterval(() => { if (!document.hidden) syncAll(); }, 120000);

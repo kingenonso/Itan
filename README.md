@@ -34,6 +34,9 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 
 ## Features
 
+**Safety**
+- **Backups** (shield button): free cloud backup a couple of minutes after changes, encrypted on your device with a recovery code only you hold (the server can't read it). Restore on any device with the code. Pictures and voice notes included; videos optional. Also a one-file backup to download and open anywhere.
+
 **Look and feel**
 - **Studio and Daylight**: a neutral grading-suite grey by default (easy on the eyes on a night shoot, and it doesn't tint your pictures), or a bright Daylight look. Switch with the sun/moon button.
 - **Prep · Shoot · Post**: the film's tools are grouped by stage, under a slate header with the film's title.
@@ -48,6 +51,7 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 **Work together live**
 - **Comments and @mentions**: select a card and choose Comment. Type @ to mention someone; they get a notice the next time they open Itàn.
 - **Approval links**: in a video's Review, get a link for a client or producer. They watch in their browser, leave notes at exact moments, and approve the cut or ask for changes. Their notes land in your review notes.
+- **Casting**: list roles (or add them from the script), write who they are and paste the sides (or take the character's lines from the script), and share one casting link. Actors choose a role and send their details, a headshot and a self-tape (a video up to 60 MB, or a link) from their phone. Review by role, rate and take notes, shortlist and call back, compare self-tapes side by side, and cast: the actor goes onto the People tab.
 - **Crew sign-up links**: on the People tab, share a link where crew enter their job, phone and the shoot days they're free. Add them to the crew in one tap.
 - **Live**: tap Live on any board to share it and everything inside it. You get an edit link and a view link to send on WhatsApp. Everyone sees changes as they happen, sees who's online and which board they're on, and pictures and videos (up to 95 MB each) are shared too. Each person keeps a full copy, so it works offline and catches up later. It runs free on Cloudflare (the `server/` folder, deployed by the Live server GitHub Action using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets).
 
