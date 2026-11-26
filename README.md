@@ -16,6 +16,9 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 
 ## Features
 
+- Boards are portals: each board card shows a live miniature of what's inside, and opening one zooms you through it
+- A floating dock of tools at the bottom, and a ring of tools wherever you double-click
+- Checklists with progress, voice notes, and a recorded voice explanation for any board
 - Notes, headings, to-do lists, links, pictures, videos, colour swatches
 - Boards inside boards, with a breadcrumb trail and an "All boards" tree
 - Columns you can drag cards into and out of
@@ -30,7 +33,8 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 
 | File | What it does |
 |---|---|
-| `index.html` | The page and its styles |
+| `index.html` | The page layout |
+| `css/app.css` | The look and the motion |
 | `js/config.js` | App name and which storage to use (`local` today) |
 | `js/storage-local.js` | Saves boards and media on the user's device (IndexedDB) |
 | `js/app.js` | The board app itself |
