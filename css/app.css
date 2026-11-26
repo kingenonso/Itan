@@ -393,3 +393,15 @@ body.presenting #world.spotlight>.card.spot{box-shadow:var(--float)}
   #drawer{top:104px}
   #mode{top:110px}
 }
+
+/* get the app */
+.getapp{color:var(--ultra);font-weight:600}
+.getapp[hidden]{display:none}
+.steps{list-style:none;margin:6px 22px 10px;padding:0;display:grid;gap:10px}
+.steps li{display:flex;gap:12px;align-items:flex-start;font-size:15px}
+.steps li>b{flex:none;width:26px;height:26px;border-radius:9px;background:var(--ultra-soft);color:var(--ultra);display:grid;place-items:center;font-size:13px}
+.steps li span{padding-top:2px}
+.inl{width:17px;height:17px;vertical-align:-3px;fill:none;stroke:var(--ultra);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dl{margin:8px 22px 0;padding:14px 16px;border-radius:14px;background:var(--paper2);display:grid;gap:6px}
+.dl span{font-size:13px;color:var(--mute)}
+.dl a.pri{justify-self:start;display:inline-flex;align-items:center;text-decoration:none;margin-top:4px}
