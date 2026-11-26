@@ -32,7 +32,7 @@
             <div><small>Location</small><p>${esc(day.address || locs.join(', ') || '—')}</p></div>
             <div><small>Parking</small><p>${esc(day.parking || '—')}</p></div>
             <div><small>Nearest hospital</small><p>${esc(day.hospital || '—')}</p></div>
-            <div><small>Weather</small><p>${esc(day.weather || '—')}</p></div>
+            <div><small>Weather</small><p>${esc(day.weather || '—')}</p>${F.weatherAlerts && day.wx ? F.weatherAlerts(d, day, day.wx).filter(a => a.lvl !== 'info').map(a => `<p class="cs-wxal ${a.lvl}">⚠ ${esc(a.text)}. ${esc(a.hint)}</p>`).join('') : ''}</div>
             ${day.sunset ? `<div class="cs-sun"><small>Sun</small><p>${esc(day.sunset)}</p></div>` : ''}
             <div><small>Producer</small><p>${esc(d.contact || '—')}</p></div>
           </div>
@@ -54,7 +54,7 @@
     };
     el.onchange = e => {
       const t = e.target;
-      if (t.dataset.cs) F.change(x => { const dy = x.days.find(y => y.id === cur); dy[t.dataset.cs] = t.value.trim(); });
+      if (t.dataset.cs) F.change(x => { const dy = x.days.find(y => y.id === cur); dy[t.dataset.cs] = t.value.trim(); if (t.dataset.cs === 'weather') dy.wxAuto = false; });
       else if (t.dataset.castcall) F.change(x => { const dy = x.days.find(y => y.id === cur); dy.castCalls = dy.castCalls || {}; dy.castCalls[t.dataset.castcall] = t.value; });
       else if (t.dataset.film) F.change(x => { x[t.dataset.film] = t.value.trim(); });
     };
