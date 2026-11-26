@@ -35,6 +35,21 @@
     } catch (e) { N.toast(e.message === 'empty' ? 'This board is empty' : e.message === 'offline' ? 'Saving as PDF needs internet the first time' : 'The PDF couldn’t be made'); }
     N.settled();
   }
+  // Save any part of the page (a call sheet, a shot list) as a picture or PDF, or send the picture
+  N.saveNode = async (node, fname, kind) => {
+    try {
+      N.status(kind === 'pdf' ? 'Making PDF…' : 'Making picture…'); await load(LIBS.img);
+      const w = node.scrollWidth, h = node.scrollHeight;
+      const url = await window.htmlToImage.toPng(node, { width: w, height: h, pixelRatio: 2, backgroundColor: '#ffffff', cacheBust: true });
+      if (kind === 'pdf') { await load(LIBS.pdf); const { jsPDF } = window.jspdf, pt = .75, doc = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'pt', format: [w * pt, h * pt] }); doc.addImage(url, 'PNG', 0, 0, w * pt, h * pt, undefined, 'FAST'); doc.save(fname + '.pdf'); N.toast('PDF saved'); }
+      else if (kind === 'share') {
+        const blob = await (await fetch(url)).blob(), file = new File([blob], fname + '.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: fname }); } catch (e) {} }
+        else { save(url, fname + '.png'); N.toast('Picture saved. Attach it in WhatsApp or email to send it.'); }
+      } else { save(url, fname + '.png'); N.toast('Picture saved'); }
+    } catch (e) { N.toast(e.message === 'offline' ? 'Saving needs internet the first time' : 'That couldn’t be saved'); }
+    N.settled();
+  };
   N.hooks.shareExtras = N.hooks.shareExtras || [];
   N.hooks.shareExtras.push({ label: 'Save as picture', run: png }, { label: 'Save as PDF', run: pdf });
 })();
