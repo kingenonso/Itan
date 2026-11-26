@@ -1,6 +1,6 @@
 {
   "name": "itan",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Itàn desktop app (Windows, Mac, Linux) built with Tauri around the web app in this folder",
   "scripts": {

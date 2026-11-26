@@ -41,6 +41,9 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 - **Voice to text.** Optional, on the device: voice notes, board explanations and walkthroughs get written out and become searchable. Needs a one-time download of about 80 MB, then works offline.
 
 **Work together live**
+- **Comments and @mentions**: select a card and choose Comment. Type @ to mention someone; they get a notice the next time they open Itàn.
+- **Approval links**: in a video's Review, get a link for a client or producer. They watch in their browser, leave notes at exact moments, and approve the cut or ask for changes. Their notes land in your review notes.
+- **Crew sign-up links**: on the People tab, share a link where crew enter their job, phone and the shoot days they're free. Add them to the crew in one tap.
 - **Live**: tap Live on any board to share it and everything inside it. You get an edit link and a view link to send on WhatsApp. Everyone sees changes as they happen, sees who's online and which board they're on, and pictures and videos (up to 95 MB each) are shared too. Each person keeps a full copy, so it works offline and catches up later. It runs free on Cloudflare (the `server/` folder, deployed by the Live server GitHub Action using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets).
 
 **Made for planning films**
@@ -51,8 +54,15 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 - **Shooting schedule**: colour-coded scene strips (inside or outside, day or night) that you drag into shoot days, with page counts and screen time per day. Group by location puts scenes in the same place together.
 - **Call sheets**: made for each shoot day from the schedule, breakdown and cast list. Add the address, parking, weather and nearest hospital, then send it to WhatsApp or save it as a picture or PDF.
 - **Shot cards**: numbered shots (1A, 1B…) with size, lens, movement, angle, a storyboard frame and a status. The Shots tab lists every shot in the film and saves as a picture or PDF.
+- **Sketch storyboards**: draw a shot's frame with a finger, stylus or mouse: pen, marker, arrows for movement, boxes for framing, and thirds, centre and widescreen guides.
+- **Animatic**: play the frames in shot order with your own timing and a recorded voice-over, and save it as a video.
+- **Sun and weather**: call sheets fill in sunrise, sunset, golden hour and the forecast for the location and date (forecasts from Open-Meteo, free).
+- **Camera tools**: storage needed for the shoot by recording format, a lens field-of-view guide for any sensor, and shutter and ND filter settings.
+- **Take log**: log takes from a phone on set (circled, OK or no good, clip, notes, camera and sound rolls). It makes camera and sound reports, and exports a metadata file DaVinci Resolve reads so circled takes are marked in the edit.
 - **Budget**: departments and line items (quantity × rate × days), planned against actual, contingency, any currency (naira by default). Add cast and crew fills in a line per person. Save the summary as a PDF.
 - **Reports**: Day Out of Days, one-line schedule, location report and needs by day, each saved as a PDF or picture.
+- **Post-production tracker**: edit, sound, music, colour, effects and subtitles tasks with owners and due dates, cut versions, and a delivery checklist.
+- **Festival tracker**: deadlines, fees, links and results, with the next deadline up front.
 - **Review notes**: open any video card in Review, pause anywhere and pin a note to that moment. Export the notes as markers for DaVinci Resolve (EDL) or copy them as text.
 
 **Every day**

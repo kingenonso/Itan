@@ -19,6 +19,7 @@
         <div class="seg days">${d.days.map((x, j) => `<button data-csday="${esc(x.id)}" class="${x.id === cur ? 'on' : ''}">Day ${j + 1}</button>`).join('')}</div>
         ${f('date', 'Date', '', 'date')}${f('call', 'Crew call', '', 'time')}${f('address', 'Location address or map link', locs.join(', '))}${f('parking', 'Parking', 'Where cars and the van can park')}
         ${f('hospital', 'Nearest hospital', 'Name and address')}${f('weather', 'Weather', 'Check the forecast the day before')}${f('sunset', 'Sunrise and sunset', 'For outdoor scenes')}
+        ${F.fillSunWeather ? `<div class="sunrow"><button class="ib" data-sunfill>☀ Fill in sun and weather</button>${day.place ? `<small>${esc(day.place.name)} · <button class="linkish" data-sunplace>Change place</button></small>` : '<small>Sunrise, sunset, golden hour and the forecast for this date</small>'}</div>` : ''}
         <label>Notes for everyone<textarea data-cs="notes" rows="3" placeholder="Bring water. Quiet on set during takes.">${esc(day.notes || '')}</textarea></label>
         <label>Producer’s name and phone<input data-film="contact" value="${esc(d.contact || '')}" placeholder="Name · phone"></label>
         ${cast.length ? `<h4>Cast call times</h4>${cast.map(p => `<label class="inline">${esc((p.num ? p.num + '. ' : '') + (p.role || ''))}${p.name ? ' · ' + esc(p.name) : ''}<input type="time" data-castcall="${esc(p.id)}" value="${esc(day.castCalls[p.id] || day.call || '')}"></label>`).join('')}` : ''}
@@ -31,7 +32,8 @@
             <div><small>Location</small><p>${esc(day.address || locs.join(', ') || '—')}</p></div>
             <div><small>Parking</small><p>${esc(day.parking || '—')}</p></div>
             <div><small>Nearest hospital</small><p>${esc(day.hospital || '—')}</p></div>
-            <div><small>Weather</small><p>${esc(day.weather || '—')}${day.sunset ? '<br>' + esc(day.sunset) : ''}</p></div>
+            <div><small>Weather</small><p>${esc(day.weather || '—')}</p></div>
+            ${day.sunset ? `<div class="cs-sun"><small>Sun</small><p>${esc(day.sunset)}</p></div>` : ''}
             <div><small>Producer</small><p>${esc(d.contact || '—')}</p></div>
           </div>
           <h3>Scenes</h3>
@@ -46,6 +48,8 @@
         </div></section></div>`;
     el.onclick = e => {
       const dd = e.target.closest('[data-csday]'); if (dd) { cur = dd.dataset.csday; return F.refresh(); }
+      if (e.target.closest('[data-sunfill]')) return F.fillSunWeather(cur);
+      if (e.target.closest('[data-sunplace]')) return F.fillSunWeather(cur, true);
       const sv = e.target.closest('[data-cssave]'); if (sv) N.saveNode(el.querySelector('#csSheet'), `${d.title || 'Film'} call sheet day ${i + 1}`, sv.dataset.cssave);
     };
     el.onchange = e => {

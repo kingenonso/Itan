@@ -11,7 +11,7 @@
   const ro = () => !N.P.canWrite ? ' disabled' : '';
 
   function frameTag(c) {
-    if (!c.frame) return `<button class="sh-add" data-shframe>${N.P.canWrite ? '+ Storyboard frame' : 'No frame'}</button>`;
+    if (!c.frame) return `<button class="sh-add" data-shframe>${N.P.canWrite ? '+ Draw or add a frame' : 'No frame'}</button>`;
     const u = N.Store.cachedUrl(c.frame);
     if (u === undefined) { N.Store.mediaUrl(c.frame).then(() => N.world.querySelectorAll(`[data-frame="${CSS.escape(c.frame)}"]`).forEach(x => { const k = N.find(x.closest('.card').dataset.id); if (k) x.innerHTML = frameTag(k); })); return '<div class="ph">Loading…</div>'; }
     return u ? `<img src="${esc(u)}" alt="" draggable="false"><button class="sh-swap" data-shframe aria-label="Change frame">Change</button>` : '<div class="ph">Frame not on this device</div>';
@@ -50,6 +50,7 @@
     const card = e.target.closest('.card.t-shot'); if (!card || !N.P.canWrite) return; const c = N.find(card.dataset.id); if (!c) return;
     if (e.target.closest('[data-shst]')) { N.snap(); c.status = NEXT[c.status || 'todo']; N.touch(); N.render(); }
     else if (e.target.closest('[data-shno]')) { const v = await F.ask('Shot number', 'For example 3B', label(c)); if (!v) return; const m = v.toUpperCase().match(/^(\d+[A-Z]?)\s*([A-Z]{1,2})?$/) || v.toUpperCase().match(/^(.+?)([A-Z]{1,2})$/); if (!m) return N.toast('Use a scene number and a letter, like 3B'); N.snap(); c.scene = m[1]; c.letter = m[2] || nextLetter(m[1], c.id); N.touch(); N.render(); }
+    else if (e.target.closest('[data-shframe]') && F.pickFrame) F.pickFrame(c, f => setFrame(c, f));
     else if (e.target.closest('[data-shframe]')) { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => i.files[0] && setFrame(c, i.files[0]); i.click(); }
   });
   async function setFrame(c, file) { try { const id = await N.Store.putMedia(file); N.snap(); c.frame = id; N.touch(); N.render(); } catch (e) { N.toast('That picture couldn’t be saved on this device'); } }

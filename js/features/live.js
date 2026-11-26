@@ -12,7 +12,7 @@
 
   let me = null, rooms = [];               // rooms: [{room, key, role, root, parent, title, outbox:{k:1}}]
   const live = new Map();                  // room id -> connection state
-  const live$ = N.live = { rooms: () => rooms, conn: id => live.get(id) };
+  const live$ = N.live = { rooms: () => rooms, conn: id => live.get(id), me: () => me, askName: () => askName(), people: () => [...live.values()].flatMap(c => c.people) };
 
   /* ---------- which board belongs to which room ---------- */
   const parentOf = id => { const b = N.S.boards[id]; if (b) return b.parent; const d = N.P.remote.get('b:' + id); return d ? d.parent : null; };

@@ -9,18 +9,19 @@
     const f = total % nf, s = Math.floor(total / nf) % 60, m = Math.floor(total / nf / 60) % 60, h = Math.floor(total / nf / 3600); return [h, m, s, f].map(x => String(x).padStart(2, '0')).join(':'); };
   const short = sec => { const m = Math.floor(sec / 60), s = Math.floor(sec % 60); return `${m}:${String(s).padStart(2, '0')}`; };
   N.hooks.videoExtra = c => { const n = (c.notes || []).length, open = (c.notes || []).filter(x => !x.done).length;
-    return `<button class="add rvbtn" data-review>${n ? `Review notes · ${open} open of ${n}` : 'Review: add notes at moments'}</button>`; };
+    return `<button class="add rvbtn" data-review>${n ? `Review notes · ${open} open of ${n}` : 'Review: add notes at moments'}${F.approvalLabel ? esc(F.approvalLabel(c)) : ''}</button>`; };
   N.world.addEventListener('click', e => { const b = e.target.closest('[data-review]'); if (!b) return; const c = N.find(b.closest('.card').dataset.id); if (c) open(c); });
 
   let rv = null;
   async function open(c) {
     const url = await N.Store.mediaUrl(c.media); if (!url) return N.toast('This video isn’t on this device');
+    if (c.approval && F.syncApproval) { await F.syncApproval(c.id, true); c = N.find(c.id) || c; }
     const d = F.data(); let fps = c.fps || (d && d.fps) || 24;
     const el = document.createElement('div'); el.className = 'fws rvw'; document.body.append(el); document.body.classList.add('filming');
     rv = { c, el };
     el.innerHTML = `<header class="fhead"><div class="ftitle"><b>Review · ${esc(c.text || 'Video')}</b></div><span class="spacer"></span>
         <label class="fpsl">Frame rate<select id="rvFps">${RATES.map(([l, v]) => `<option value="${v}"${v === fps ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
-        <button class="ib" id="rvExport">Export notes</button><button class="ib" id="rvClose">Done</button></header>
+        ${F.approval ? `<button class="ib" id="rvApprove">${c.approval ? 'Approval link' + esc(F.approvalLabel(c)) : 'Get approval link'}</button>` : ''}<button class="ib" id="rvExport">Export notes</button><button class="ib" id="rvClose">Done</button></header>
       <div class="rv"><div class="rv-player"><video id="rvV" src="${esc(url)}" playsinline preload="auto"></video>
         <div class="rv-bar"><button class="ib" id="rvPlay" aria-label="Play">▶</button><div class="rv-track" id="rvTrack"><i id="rvFill"></i><div id="rvMarks"></div></div><span id="rvTC">00:00:00:00</span></div>
         <div class="rv-add"><button class="pri" id="rvAdd">Add note here</button><span class="fhint">Space plays and pauses · N adds a note · arrow keys step one frame</span></div></div>
@@ -48,6 +49,7 @@
       const s = t.closest('[data-seek]'); if (s) { v.pause(); seek(s.dataset.seek); return; }
       if (t.closest('[data-ndel]')) { const id = t.closest('[data-nid]').dataset.nid; N.snap(); c.notes = c.notes.filter(x => x.id !== id); N.touch(); draw(); }
       if (t.closest('#rvExport')) exportNotes(c, fps);
+      if (t.closest('#rvApprove')) { close(); F.approval(c.id); }
     });
     el.addEventListener('change', e => {
       if (e.target.matches('[data-done]')) { const id = e.target.closest('[data-nid]').dataset.nid; N.snap(); const n = c.notes.find(x => x.id === id); n.done = e.target.checked; N.touch(); draw(); }

@@ -5,7 +5,7 @@
    Everything stays within Cloudflare's free plan (Durable Objects with SQLite storage). */
 import { DurableObject } from 'cloudflare:workers';
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,PUT,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,X-Key,X-Type' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,PUT,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,X-Key,X-Type,Range' };
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 const ID = /^[A-Za-z0-9_-]{8,64}$/;
 const CHUNK = 1024 * 1024;            // 1 MB per stored piece (SQLite rows can hold up to 2 MB)
@@ -30,7 +30,8 @@ export class Room extends DurableObject {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
       CREATE TABLE IF NOT EXISTS docs (k TEXT PRIMARY KEY, v TEXT NOT NULL, t INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS media (id TEXT PRIMARY KEY, type TEXT, size INTEGER, parts INTEGER, done INTEGER DEFAULT 0);
-      CREATE TABLE IF NOT EXISTS chunks (id TEXT, n INTEGER, data BLOB, PRIMARY KEY (id, n));`);
+      CREATE TABLE IF NOT EXISTS chunks (id TEXT, n INTEGER, data BLOB, PRIMARY KEY (id, n));
+      CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER, body TEXT);`);
   }
   meta(k) { const r = this.sql.exec('SELECT v FROM meta WHERE k=?', k).toArray()[0]; return r ? r.v : null; }
   role(key) { if (!key) return null; if (key === this.meta('edit')) return 'edit'; if (key === this.meta('view')) return 'view'; return null; }
@@ -53,6 +54,34 @@ export class Room extends DurableObject {
 
     if (what === 'check') return json({ role, title: this.meta('title') });
 
+    // A page made for people outside the team (a client approving a cut, crew signing up for shoot days):
+    // the owner posts what they should see; guests send back notes, approvals or sign-ups.
+    if (what === 'form') {
+      if (req.method === 'GET') return json({ form: JSON.parse(this.meta('form') || 'null'), title: this.meta('title') });
+      if (req.method === 'POST') {
+        if (role !== 'edit') return json({ error: 'view only' }, 403);
+        const body = await req.text(); if (body.length > 64 * 1024) return json({ error: 'too big' }, 413);
+        try { JSON.parse(body); } catch (e) { return json({ error: 'bad request' }, 400); }
+        this.sql.exec('INSERT OR REPLACE INTO meta VALUES (?,?)', 'form', body); return json({ ok: true });
+      }
+    }
+    if (what === 'feedback') {
+      if (req.method === 'POST') {
+        const body = await req.text(); if (body.length > 16 * 1024) return json({ error: 'too big' }, 413);
+        let o; try { o = JSON.parse(body); } catch (e) { return json({ error: 'bad request' }, 400); }
+        const n = this.sql.exec('SELECT COUNT(*) AS n FROM feedback').toArray()[0].n; if (n > 5000) return json({ error: 'full' }, 429);
+        const t = Date.now(); this.sql.exec('INSERT INTO feedback (t, body) VALUES (?,?)', t, JSON.stringify(o));
+        const id = this.sql.exec('SELECT last_insert_rowid() AS id').toArray()[0].id;
+        this.broadcast({ type: 'feedback', id, t, body: o });
+        return json({ ok: true, id });
+      }
+      if (req.method === 'GET') {
+        if (role !== 'edit') return json({ error: 'only the owner can read this' }, 403);
+        const after = +url.searchParams.get('after') || 0;
+        return json({ items: this.sql.exec('SELECT id, t, body FROM feedback WHERE id > ? ORDER BY id LIMIT 1000', after).toArray().map(r => ({ id: r.id, t: r.t, body: JSON.parse(r.body) })) });
+      }
+    }
+
     if (what === 'ws') {
       if (req.headers.get('Upgrade') !== 'websocket') return json({ error: 'expected websocket' }, 426);
       const pair = new WebSocketPair(), [client, server] = Object.values(pair);
@@ -70,9 +99,20 @@ export class Room extends DurableObject {
       if (req.method === 'GET') {
         const m = this.sql.exec('SELECT type, size, parts FROM media WHERE id=? AND done=1', id).toArray()[0];
         if (!m) return json({ error: 'not found' }, 404);
-        const sql = this.sql;
-        const body = new ReadableStream({ n: 0, pull(c) { const r = sql.exec('SELECT data FROM chunks WHERE id=? AND n=?', id, this.n++).toArray()[0]; if (!r) return c.close(); c.enqueue(new Uint8Array(r.data)); if (this.n >= m.parts) c.close(); } });
-        return new Response(body, { headers: { ...CORS, 'Content-Type': m.type || 'application/octet-stream', 'Content-Length': String(m.size), 'Cache-Control': 'private, max-age=31536000, immutable' } });
+        // supports byte ranges, so a video can be skipped through without downloading all of it
+        const sql = this.sql, size = m.size, rng = (req.headers.get('Range') || '').match(/bytes=(\d*)-(\d*)/);
+        let start = 0, end = size - 1;
+        if (rng) { if (rng[1] === '' && rng[2]) { start = Math.max(0, size - +rng[2]); } else { start = +rng[1] || 0; if (rng[2]) end = Math.min(size - 1, +rng[2]); } if (start > end || start >= size) return new Response(null, { status: 416, headers: { ...CORS, 'Content-Range': `bytes */${size}` } }); }
+        let n = Math.floor(start / CHUNK), pos = start;
+        const body = new ReadableStream({ pull(c) {
+          if (pos > end) return c.close();
+          const r = sql.exec('SELECT data FROM chunks WHERE id=? AND n=?', id, n).toArray()[0]; if (!r) return c.close();
+          const buf = new Uint8Array(r.data), from = pos - n * CHUNK, to = Math.min(buf.length, end - n * CHUNK + 1);
+          c.enqueue(buf.subarray(from, to)); pos = n * CHUNK + to; n++; if (pos > end) c.close();
+        } });
+        const h = { ...CORS, 'Content-Type': m.type || 'application/octet-stream', 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=31536000, immutable', 'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges' };
+        if (rng) h['Content-Range'] = `bytes ${start}-${end}/${size}`;
+        return new Response(body, { status: rng ? 206 : 200, headers: h });
       }
       if (req.method === 'PUT') {
         if (role !== 'edit') return json({ error: 'view only' }, 403);

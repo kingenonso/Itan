@@ -1,6 +1,6 @@
 {
 const $=s=>document.querySelector(s);
-const N=window.N={hooks:{render:[],saved:[],beforeOpen:async()=>true,isLocked:()=>false,snapDrag:()=>{},dragEnd:()=>{},historyMedia:async()=>[],ready:[],cardTypes:{}}};
+const N=window.N={hooks:{render:[],saved:[],beforeOpen:async()=>true,isLocked:()=>false,snapDrag:()=>{},dragEnd:()=>{},historyMedia:async()=>[],ready:[],cardTypes:{},ctxExtras:[],ctxAct:{},cardBadges:[]}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -162,7 +162,7 @@ function preview(b){if(!b)return '';if(N.hooks.isLocked(b.id))return '<svg viewB
  const s=Math.min(136/(x1-x0||1),88/(y1-y0||1),.5),ox=(160-(x1-x0)*s)/2,oy=(110-(y1-y0)*s)/2;
  return '<svg viewBox="0 0 160 110">'+rs.map(r=>{const h=r.t=='heading'?Math.max(3,r.h*s*.5):Math.max(3,r.h*s);return `<rect class="mini${r.t=='heading'?' h':r.t=='board'?' b':r.k?' k':''}" x="${(ox+(r.x-x0)*s).toFixed(1)}" y="${(oy+(r.y-y0)*s).toFixed(1)}" width="${Math.max(4,r.w*s).toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(3,h/2).toFixed(1)}"/>`}).join('')+'</svg>'}
 function cardHTML(c,inCol,idx){const cl=okc(c.color);const strip=cl&&!['board','swatch','heading'].includes(c.type);
- return `<div class="card t-${c.type}${S.sel.has(c.id)?' sel':''}${S.popId===c.id?' pop':''}${inCol?' inc':''}" data-id="${esc(c.id)}" style="${inCol?'':`left:${c.x}px;top:${c.y}px;width:${c.w}px;--i:${Math.min(idx||0,24)};`}${cl?`--c:${cl};`:c.type=='board'?'--c:#737a84;':''}">${strip?'<i class="strip"></i>':''}${inner(c)}${inCol?'':'<span class="rs" data-act="rs"></span>'}</div>`}
+ return `<div class="card t-${c.type}${S.sel.has(c.id)?' sel':''}${S.popId===c.id?' pop':''}${inCol?' inc':''}" data-id="${esc(c.id)}" style="${inCol?'':`left:${c.x}px;top:${c.y}px;width:${c.w}px;--i:${Math.min(idx||0,24)};`}${cl?`--c:${cl};`:c.type=='board'?'--c:#737a84;':''}">${strip?'<i class="strip"></i>':''}${inner(c)}${N.hooks.cardBadges.map(f=>{try{return f(c)||''}catch(e){return ''}}).join('')}${inCol?'':'<span class="rs" data-act="rs"></span>'}</div>`}
 function render(){S.needRender=false;const b=B();if(!b)return;world.querySelectorAll(':scope>.card').forEach(e=>e.remove());
  world.insertAdjacentHTML('beforeend',b.cards.filter(c=>!c.col||!find(c.col)).map((c,i)=>cardHTML(c,false,i)).join(''));S.popId=null;
  if(S.entering){S.entering=false;world.classList.remove('enter');void world.offsetWidth;world.classList.add('enter');clearTimeout(S.enterT);S.enterT=setTimeout(()=>world.classList.remove('enter'),1400)}
@@ -192,7 +192,7 @@ function buildCtx(){
  const c=find(ids[0]);
  if(!P.canWrite){if(ids.length==1&&c.type=='board'){ctx.innerHTML=cb('open','Open');ctx.hidden=false;placeCtx()}else ctx.hidden=true;return}
  const colorable=ids.every(id=>!['swatch','image','video','audio'].includes(find(id).type));
- ctx.innerHTML=(colorable?COLORS.map(k=>`<button class="dot${(okc(c.color))==k?' on':''}" data-color="${k}" style="--c:${k||'transparent'}" aria-label="${k?'Colour '+k:'No colour'}"></button>`).join('')+'<i class="sep"></i>':'')+(ids.length==1&&c.type=='board'?cb('open','Open'):'')+(ids.length==1?cb('connect','Connect'):'')+cb('dup','Duplicate')+cb('del','Delete');
+ ctx.innerHTML=(colorable?COLORS.map(k=>`<button class="dot${(okc(c.color))==k?' on':''}" data-color="${k}" style="--c:${k||'transparent'}" aria-label="${k?'Colour '+k:'No colour'}"></button>`).join('')+'<i class="sep"></i>':'')+(ids.length==1&&c.type=='board'?cb('open','Open'):'')+(ids.length==1?cb('connect','Connect'):'')+N.hooks.ctxExtras.map(f=>{try{return f(ids,c)||''}catch(e){return ''}}).join('')+cb('dup','Duplicate')+cb('del','Delete');
  ctx.hidden=false;placeCtx()}
 function placeCtx(){if(ctx.hidden)return;if(drag&&drag.kind=='move'){ctx.style.visibility='hidden';return}ctx.style.visibility='';const cr=canvas.getBoundingClientRect();let r;
  if(S.selLink&&S.linkPt){r={left:S.linkPt.x-50,top:S.linkPt.y,bottom:S.linkPt.y+10}}else{const e=el([...S.sel][0]);if(!e){ctx.hidden=true;return}r=e.getBoundingClientRect()}
@@ -397,6 +397,7 @@ ctx.addEventListener('pointerdown',e=>e.preventDefault());
 ctx.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  const a=b.dataset.a,first=find([...S.sel][0]);
  if(a=='open'&&first)return openBoard(first.board);
+ if(N.hooks.ctxAct[a])return N.hooks.ctxAct[a](first,[...S.sel]);
  if(!P.canWrite)return;
  if(b.dataset.color!==undefined){snap();S.sel.forEach(id=>{const c=find(id);if(c)c.color=b.dataset.color});touch();render();return}
  if(a=='del'||a=='dell')delSel();else if(a=='dup')dup();
