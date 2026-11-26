@@ -200,5 +200,5 @@
   empty.append(tray);
   tray.addEventListener('click', e => { const b = e.target.closest('[data-tpl]'); if (b) apply(T.find(t => t.id === b.dataset.tpl)); });
   N.hooks.render.push(() => { tray.hidden = !N.P.canWrite; });
-  N.templates = T;
+  N.templates = T; N.applyTemplate = id => apply(T.find(t => t.id === id));
 })();

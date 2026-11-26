@@ -1,30 +1,41 @@
 /* Itàn — visual language
-   Idea: boards are portals. A board card shows a living miniature of what's inside,
-   and opening it zooms you through. Everything else stays quiet so that moment lands.
-   Palette: cool "drafting table" canvas, paper cards, ultramarine for focus, marigold for sound.
-   Type: Sora throughout, set in a few deliberate sizes. */
+   Idea: the grading suite. Neutral graphite (it doesn't tint the pictures you pin up), paper-like panels,
+   ultramarine for focus, marigold for sound and the slate, a tally-light red only for recording or running behind.
+   Type: Sora for everything you read; Big Shoulders, a tall slate-chalk face, only for the numbers that run a shoot. */
 
 :root{
-  color-scheme:light dark;
+  /* Studio (dark) is the default: a grading-suite neutral grey that doesn't tint pictures, and is kind to eyes on a night shoot.
+     Daylight is the same system, lit for bright rooms. */
+  color-scheme:dark;
   --f:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --canvas:light-dark(#e4e7f0,#14151d);
-  --grid:light-dark(rgba(44,52,94,.075),rgba(200,206,240,.06));
-  --paper:light-dark(#ffffff,#1f2130);
-  --paper2:light-dark(#f3f4f9,#272a3b);
-  --ink:light-dark(#1a1c29,#eceef8);
-  --mute:light-dark(#646a80,#9aa0b8);
-  --line:light-dark(#d9dce8,#33364a);
-  --ultra:#4636ef;          /* focus, selection, primary actions */
-  --ultra-soft:light-dark(#e7e5ff,#2a2660);
-  --marigold:#ffbd2e;       /* sound: voice notes, explanations, recording */
-  --dock:light-dark(rgba(26,28,41,.92),rgba(36,38,54,.92));
-  --glass:light-dark(rgba(255,255,255,.78),rgba(31,33,48,.78));
-  --lift:0 1px 0 rgba(20,22,40,.04),0 6px 18px -8px rgba(20,22,40,.22);
-  --float:0 18px 40px -16px rgba(20,22,40,.45),0 4px 10px -4px rgba(20,22,40,.18);
+  --fd:'Big Shoulders Display','Sora',system-ui,sans-serif;   /* slate numbers: titles, shot numbers, clocks, totals */
+  --canvas:light-dark(#e8e8e5,#1c1d20);
+  --grid:light-dark(rgba(30,32,40,.16),rgba(235,234,230,.09));
+  --paper:light-dark(#ffffff,#26282c);
+  --paper2:light-dark(#f2f2ef,#2f3136);
+  --ink:light-dark(#18191c,#ebeae6);
+  --mute:light-dark(#62656e,#9b9ea6);
+  --line:light-dark(#dcdcd7,#3a3d43);
+  --ultra:light-dark(#4636ef,#6b5fff);   /* focus, selection, primary actions */
+  --ultra-soft:light-dark(#e7e5ff,#302c63);
+  --marigold:#ffbd2e;       /* sound and the slate: voice notes, recording, the stage marker */
+  --tally:#ff453a;          /* the camera's tally light: recording and running behind, nothing else */
+  --dock:light-dark(rgba(24,25,28,.94),rgba(18,19,21,.94));
+  --glass:light-dark(rgba(255,255,255,.86),rgba(38,40,44,.88));
+  --lift:0 1px 0 rgba(255,255,255,.045) inset,0 8px 20px -10px rgba(0,0,0,.65);
+  --float:0 22px 48px -18px rgba(0,0,0,.7),0 4px 12px -4px rgba(0,0,0,.35);
+  /* tints for states, readable in both themes */
+  --ultra-ink:light-dark(#2a1fb8,#c2bcff);
+  --warn-soft:light-dark(#fff1c2,#433514);--warn-ink:light-dark(#7a5200,#ffd27a);
+  --bad-soft:light-dark(#ffe0dc,#47211e);--bad-ink:light-dark(#b3261e,#ff9b91);
+  --good-soft:light-dark(#d4f0df,#1b3b2a);--good-ink:light-dark(#1d6b42,#86dcae);
+  --deep:light-dark(#18191c,#121315);   /* the darkest panels: NOW on set, the slate */
   --spring:cubic-bezier(.34,1.56,.64,1);
   --glide:cubic-bezier(.2,.8,.2,1);
 }
-:root[data-theme=light]{color-scheme:light}
+:root[data-theme=light]{color-scheme:light;--lift:0 1px 0 rgba(20,22,30,.04),0 6px 18px -8px rgba(20,22,30,.22);--float:0 18px 40px -16px rgba(20,22,30,.42),0 4px 10px -4px rgba(20,22,30,.16)}
+/* printed pages stay paper-white in both themes */
+.sheet,.ls-page,.sp-page,.gs-form .sheet{color-scheme:light}
 :root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 html,body{height:100%}
@@ -37,7 +48,7 @@ button{font:inherit;color:inherit}
 #app{position:fixed;inset:0}
 #stage{position:absolute;inset:0;overflow:hidden}
 #canvas{position:absolute;inset:0;overflow:hidden;touch-action:none;background-color:var(--canvas);
-  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px)}
+  background-image:radial-gradient(circle,var(--grid) 1.1px,transparent 1.4px)}
 #canvas.pan{cursor:grabbing}
 #world{position:absolute;left:0;top:0;transform-origin:0 0}
 #links{position:absolute;left:-20000px;top:-20000px;width:40000px;height:40000px;pointer-events:none;overflow:visible;color:light-dark(#7c82a0,#7d84a6)}
@@ -110,7 +121,7 @@ button{font:inherit;color:inherit}
 
 .t-heading{background:none;box-shadow:none;padding:2px 4px}
 .t-heading.sel{box-shadow:0 0 0 2px var(--ultra)}
-.h{font-size:34px;font-weight:700;line-height:1.05;letter-spacing:-.03em;color:var(--c,var(--ink));text-wrap:balance}
+.h{font:800 44px/1 var(--fd);letter-spacing:.005em;color:var(--c,var(--ink));text-wrap:balance}
 
 /* checklist */
 .tt{font-weight:650;margin-bottom:6px}
@@ -447,7 +458,7 @@ body.lv-view #tb{display:none}
 .cm-new textarea:focus{outline:none;border-color:var(--ultra)}
 .cm-sug{position:absolute;left:0;bottom:100%;margin:0 0 4px;padding:4px;list-style:none;background:var(--paper);border-radius:12px;box-shadow:var(--float);min-width:200px;z-index:3}
 .cm-sug li{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:14px}
-.cm-sug li.on,.cm-sug li:hover{background:#efedff}
+.cm-sug li.on,.cm-sug li:hover{background:var(--ultra-soft)}
 
 /* ---------- Guest pages (approval and crew sign-up links) ---------- */
 body.guesting>*:not(.guest):not(#toast):not(#dlg){display:none !important}
@@ -465,7 +476,7 @@ body.guesting>*:not(.guest):not(#toast):not(#dlg){display:none !important}
 .gs-note input,.gs-form input,.gs-form textarea,.gs-verdict textarea{font:16px var(--f);color:var(--ink);padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);min-width:0}
 .gs-list{list-style:none;padding:0;margin:14px 0;display:grid;gap:6px}
 .gs-list li{display:flex;gap:10px;align-items:baseline;background:var(--paper);border-radius:12px;padding:10px 12px;box-shadow:var(--lift)}
-.gs-list button{border:0;background:#efedff;color:var(--ultra);font:600 13px var(--f);border-radius:8px;padding:4px 8px;cursor:pointer}
+.gs-list button{border:0;background:var(--ultra-soft);color:var(--ultra);font:600 13px var(--f);border-radius:8px;padding:4px 8px;cursor:pointer}
 .gs-verdict{background:var(--paper);border-radius:18px;padding:18px;box-shadow:var(--lift);margin-top:20px}
 .gs-verdict textarea{width:100%;box-sizing:border-box}
 .gs-verdict .row{padding:12px 0 0 !important;display:flex;gap:8px;flex-wrap:wrap}
@@ -477,8 +488,30 @@ body.guesting>*:not(.guest):not(#toast):not(#dlg){display:none !important}
 .gs-days label{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;color:var(--ink);font-size:15px}
 .gs-days input{width:20px;height:20px;accent-color:var(--ultra)}
 .gs-days small{display:block;color:var(--mute);font-size:12px}
-.gs-days label:has(input:checked){border-color:var(--ultra);background:#efedff}
-.ap-st{font-weight:600}.ap-approved{color:#1d6b42 !important}.ap-changes{color:#b56b00 !important}
+.gs-days label:has(input:checked){border-color:var(--ultra);background:var(--ultra-soft)}
+.ap-st{font-weight:600}.ap-approved{color:var(--good-ink) !important}.ap-changes{color:var(--warn-ink) !important}
 .su-t td small{display:block;color:var(--mute);font-size:12px}
-.su-y{color:#1d6b42;font-weight:700}.su-n{color:var(--line)}
+.su-y{color:var(--good-ink);font-weight:700}.su-n{color:var(--line)}
 .su-add{border:1px solid var(--line) !important;white-space:nowrap}
+
+/* ---------- Welcome and tour ---------- */
+.wl-panel{width:min(720px,100%) !important}
+.wl{padding:26px 26px 18px;text-align:center}
+.wl-mark img{width:76px;height:76px;filter:drop-shadow(0 14px 24px rgba(70,54,239,.35));animation:rise .6s var(--spring)}
+.wl h2{font:900 52px/1 var(--fd) !important;padding:14px 0 6px !important;letter-spacing:.01em}
+.wl .wl-sub{margin:0 0 20px !important;font-size:15px !important}
+.wl-stages{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:left;margin-bottom:22px}
+.wl-stages div{background:var(--paper2);border-radius:16px;padding:14px;border-top:3px solid var(--marigold)}
+.wl-stages b{font:800 26px var(--fd);display:block;letter-spacing:.01em}
+.wl-stages span{font-size:13px;color:var(--mute);line-height:1.45}
+.wl-go{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.wl-b{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:0 18px;min-height:48px;cursor:pointer;font:600 15px var(--f);color:var(--ink)}
+.wl-b:hover{border-color:var(--ultra)}
+.wl .fine{margin:14px 0 0 !important}
+@media (max-width:640px){.wl-stages{grid-template-columns:1fr}.wl h2{font-size:42px !important}}
+.tour{position:fixed;z-index:120;background:var(--deep);color:#ebeae6;border-radius:16px;padding:14px 16px 12px;box-shadow:var(--float);animation:rise .3s var(--spring);font-size:14px;line-height:1.5}
+.tour p{margin:0 0 10px}.tour b{color:var(--marigold)}
+.tour-foot{display:flex;align-items:center;gap:6px}.tour-foot span{flex:1;font-size:12px;color:#9b9ea6}
+.tour-foot .ib{color:#ebeae6;border:1px solid #3a3c42;height:34px}
+.tour-ring{position:fixed;z-index:119;border-radius:14px;box-shadow:0 0 0 3px var(--marigold),0 0 0 9999px rgba(0,0,0,.45);pointer-events:none;transition:all .35s var(--glide)}
+#fTour{border:1px solid var(--line);font-weight:700;width:36px}

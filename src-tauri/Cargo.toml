@@ -1,6 +1,6 @@
 [package]
 name = "itan"
-version = "1.6.0"
+version = "1.7.0"
 description = "Itàn: visual boards for notes, pictures, videos and plans"
 authors = ["kingenonso"]
 edition = "2021"

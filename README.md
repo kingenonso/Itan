@@ -34,6 +34,11 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 
 ## Features
 
+**Look and feel**
+- **Studio and Daylight**: a neutral grading-suite grey by default (easy on the eyes on a night shoot, and it doesn't tint your pictures), or a bright Daylight look. Switch with the sun/moon button.
+- **Prep · Shoot · Post**: the film's tools are grouped by stage, under a slate header with the film's title.
+- **Welcome and tour**: new users can explore a sample film, The Last Danfo, already written, broken down, storyboarded, scheduled and budgeted, with a short guided tour. The ? button in the film workspace replays the tour.
+
 **What makes it different**
 - **Boards are portals.** Each board card shows a live miniature of what's inside, and opening one zooms you through it.
 - **Narrated walkthroughs.** Record your voice while you move around a board and click cards. Playback moves the screen and highlights each card in time with your voice.

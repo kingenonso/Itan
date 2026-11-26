@@ -36,7 +36,10 @@
     if (!ws) {
       ws = document.createElement('div'); ws.className = 'fws'; ws.setAttribute('role', 'dialog'); ws.setAttribute('aria-label', 'Film workspace');
       document.body.append(ws); document.body.classList.add('filming');
-      ws.addEventListener('click', e => { const t = e.target.closest('[data-ftab]'); if (t) { tab = t.dataset.ftab; F.refresh(); } if (e.target.closest('#fwsClose')) F.close(); });
+      ws.addEventListener('click', e => { const t = e.target.closest('[data-ftab]'); if (t) { tab = t.dataset.ftab; F.refresh(); }
+        const st = e.target.closest('[data-fstage]'); if (st) { const k = st.dataset.fstage; const first = F.tabs.find(x => F.stageOf(x.id) === k); tab = lastIn[k] || (k === 'shoot' ? 'set' : first && first.id) || tab; F.refresh(); }
+        if (e.target.closest('#fTour')) N.tour();
+        if (e.target.closest('#fwsClose')) F.close(); });
     }
     F.refresh();
   };
@@ -46,13 +49,21 @@
   // when a teammate changes the film while the workspace is open, show it (unless you're typing)
   let lastSnap = '';
   N.hooks.render.push(() => { if (!ws) return; const d = F.data(); if (!d) return; const snap = JSON.stringify(d); if (snap === lastSnap) return; if (N.isEditing() && ws.contains(document.activeElement)) return; lastSnap = snap; F.refresh(); });
+  // the film's tools, grouped by stage of the film
+  const STAGES = [['prep', 'Prep'], ['shoot', 'Shoot'], ['post', 'Post']];
+  const STAGE_OF = { script: 'prep', lined: 'prep', breakdown: 'prep', shots: 'prep', schedule: 'prep', budget: 'prep', people: 'prep', callsheets: 'shoot', set: 'shoot', takes: 'shoot', camera: 'shoot', reports: 'shoot', post: 'post', fest: 'post' };
+  F.stageOf = id => STAGE_OF[id] || 'prep';
+  const lastIn = {};
   F.refresh = () => {
     if (!ws) return; const d = F.data(); if (!d) return F.close();
     const t = F.tabs.find(x => x.id === tab) || F.tabs[0]; tab = t.id;
     const sc = ws.querySelector('.fbody') ? ws.querySelector('.fbody').scrollTop : 0;
+    const stage = F.stageOf(t.id), inStage = F.tabs.filter(x => F.stageOf(x.id) === stage);
+    lastIn[stage] = t.id;
     ws.innerHTML = `<header class="fhead"><div class="ftitle"><span class="clap">${F.icon}</span><input id="fTitle" value="${esc(d.title)}" aria-label="Film title" ${N.P.canWrite ? '' : 'readonly'}></div>
-      <nav class="ftabs">${F.tabs.map(x => `<button data-ftab="${x.id}" class="${x.id === tab ? 'on' : ''}">${esc(x.label)}</button>`).join('')}</nav>
-      <button class="ib" id="fwsClose" aria-label="Close film workspace">Done</button></header><div class="fbody" data-tab="${t.id}"></div>`;
+      <nav class="fstages" aria-label="Stage">${STAGES.map(([k, l]) => `<button data-fstage="${k}" class="${k === stage ? 'on' : ''}" aria-pressed="${k === stage}">${l}</button>`).join('')}</nav>
+      ${N.tour ? '<button class="ib" id="fTour" title="Show me around" aria-label="Show me around">?</button>' : ''}<button class="ib" id="fwsClose" aria-label="Close film workspace">Done</button></header>
+      <nav class="ftabs" aria-label="${STAGES.find(x => x[0] === stage)[1]} tools">${inStage.map(x => `<button data-ftab="${x.id}" class="${x.id === tab ? 'on' : ''}">${esc(x.label)}</button>`).join('')}</nav><div class="fbody" data-tab="${t.id}"></div>`;
     lastSnap = JSON.stringify(d);
     const body = ws.querySelector('.fbody'); t.render(body, d); body.scrollTop = sc; const on = ws.querySelector('.ftabs .on'); if (on && on.scrollIntoView) on.scrollIntoView({ inline: 'center', block: 'nearest' });
     ws.querySelector('#fTitle').onchange = e => F.change(dd => { dd.title = e.target.value.trim() || 'Our film'; }, true);

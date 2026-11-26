@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Itàn</title>
 <meta name="description" content="Itàn: free visual boards for notes, pictures, videos and plans. Saved on your own device.">
-<meta name="theme-color" content="#1f2125">
+<meta name="theme-color" content="#1c1d20">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("itan:theme")||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/film.css">
 </head>
@@ -110,6 +111,7 @@
 <script src="js/features/film-post.js"></script>
 <script src="js/features/comments.js"></script>
 <script src="js/features/guest.js"></script>
+<script src="js/features/welcome.js"></script>
 <script>
 if('serviceWorker' in navigator&&location.protocol=='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>

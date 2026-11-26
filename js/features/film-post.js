@@ -19,11 +19,10 @@
   const dueChip = s => { const n = daysTo(s); if (n == null) return ''; return `<span class="due${n < 0 ? ' late' : n <= 7 ? ' soon' : ''}">${n < 0 ? `${-n} day${n === -1 ? '' : 's'} late` : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : `in ${n} days`}</span>`; };
   const blankPost = () => ({ tasks: Object.entries(DEPTS).flatMap(([dept, ts]) => ts.map(title => ({ id: F.uid(), dept, title, who: '', due: '', st: 'todo' }))), versions: [], deliver: DELIVER.map(title => ({ id: F.uid(), title, done: false })) });
 
-  F.tabs.push({ id: 'post', label: 'Post', order: 48, render(el, d) {
-    const seg = `<div class="rp-bar"><div class="seg">${[['post', 'Post-production'], ['fest', 'Festivals']].map(([k, l]) => `<button data-pv="${k}" class="${k === view ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
-    el.innerHTML = `<div class="fwrap wide pst">${seg}${view === 'post' ? post(d) : fest(d)}</div>`;
+  const tab = { id: 'post', label: 'Post-production', order: 48, render(el, d) {
+    el.innerHTML = `<div class="fwrap wide pst">${view === 'post' ? post(d) : fest(d)}</div>`;
     el.onclick = e => {
-      const t = e.target, pv = t.closest('[data-pv]'); if (pv) { view = pv.dataset.pv; return F.refresh(); }
+      const t = e.target;
       if (t.closest('#psStart')) return F.change(dd => { dd.post = blankPost(); });
       const st = t.closest('[data-pst]'); if (st) return F.change(dd => { const x = dd.post.tasks.find(y => y.id === st.dataset.pst); x.st = NEXT[x.st || 'todo']; });
       const add = t.closest('[data-padd]'); if (add) return F.ask('New task', 'What needs doing?').then(v => v && F.change(dd => dd.post.tasks.push({ id: F.uid(), dept: add.dataset.padd, title: v, who: '', due: '', st: 'todo' })));
@@ -40,7 +39,9 @@
       const [kind, id] = row.dataset.row.split(':'), k = t.dataset.k, v = t.type === 'checkbox' ? t.checked : t.value.trim();
       F.change(dd => { const list = kind === 'task' ? dd.post.tasks : kind === 'ver' ? dd.post.versions : kind === 'del' ? dd.post.deliver : dd.fests; const x = list.find(y => y.id === id); if (x) x[k] = v; }, !['due', 'deadline', 'st', 'done', 'fee'].includes(k));
     };
-  } });
+  } };
+  F.tabs.push({ ...tab, render(el, d) { view = 'post'; tab.render(el, d); } });
+  F.tabs.push({ id: 'fest', label: 'Festivals', order: 49, render(el, d) { view = 'fest'; tab.render(el, d); } });
 
   function post(d) {
     if (!d.post) return `<div class="empty-row big">Track the edit, sound, music, colour, effects and subtitles until the film is delivered.</div><div class="row" style="justify-content:center"><button class="pri" id="psStart">Start the post-production plan</button></div>`;
