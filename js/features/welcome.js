@@ -111,10 +111,12 @@ Tunde squeezes onto the back seat. He opens the envelope again and smiles.
 
   /* ---------- the tour ---------- */
   const STEPS = [
-    { tab: 'script', sel: '.fstages', text: 'Itàn follows your film from start to finish. Pick a stage here: <b>Prep</b>, <b>Shoot</b> or <b>Post</b>. Each has its own tools underneath.' },
+    { tab: 'dk-director', sel: '.fstages', text: 'Itàn follows your film from start to finish: <b>Overview</b>, <b>Story</b>, <b>Plan</b>, <b>Shoot</b> and <b>Post</b>. Each stage has its tools, and the departments that work in it.' },
+    { tab: 'dk-director', sel: '.dr-grid', text: 'The <b>Overview</b> is the director’s home: the next shoot day, how ready every department is, and what needs you, live as your team works.' },
     { tab: 'script', sel: '.sp-page', text: 'This is the script. It formats itself as you type, like Final Draft. You can also open a script from Final Draft, Fountain, a PDF or plain text.' },
     { tab: 'lined', sel: '.ls-stats', text: 'The <b>Lined script</b> draws each shot as a coloured line over the lines it covers. Scene 3 has no shots yet, so its lines are flagged in red, before the shoot, not in the edit.' },
     { tab: 'schedule', sel: '.board-cols', text: 'Scenes become colour-coded strips. Drag them into shoot days. Call sheets, Day Out of Days and reports are made from this.' },
+    { tab: 'schedule', sel: '.fdesks', text: 'Each department has its own desk in the stage where it works: the 1st AD, art, wardrobe, makeup, props, lighting, grip, safety, transport and catering plan here.' },
     { tab: 'set', sel: '.set-start', text: 'On the day, <b>On set</b> turns every phone into the control room: the shot now and next, takes, the clock, and warnings before the light goes.' },
     { tab: 'post', sel: '.fbody', text: 'After the shoot, track the edit, sound and colour, send clients an approval link, and plan your festival run.' },
     { tab: null, sel: '#fwsClose', text: 'That’s the tour. Tap <b>Done</b> to see the film’s boards: storyboards, locations and moodboards. Use <b>Live</b> on any board to bring your team in. Have fun with The Last Danfo.' }

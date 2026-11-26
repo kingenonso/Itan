@@ -6,11 +6,9 @@
 (function () {
   const N = window.N, F = N.film, esc = N.esc;
   F.desks = [];
-  let cur = null;
-  try { cur = localStorage.getItem('itan:desk'); } catch (e) {}
   F.desk = (d, k, init) => { d.desks = d.desks || {}; return d.desks[k] || init; };   // read without changing anything
   F.deskW = (d, k, init) => { d.desks = d.desks || {}; d.desks[k] = d.desks[k] || init(); return d.desks[k]; };  // inside F.change only
-  F.openDesk = id => { cur = id; F.open('desks'); };
+  F.openDesk = id => F.open('dk-' + id);
   const num = v => { const n = parseFloat(String(v || '').replace(/[^\d.\-]/g, '')); return isFinite(n) ? n : 0; };
   F.num = num;
   F.mediaImgs = el => el.querySelectorAll('img[data-media]').forEach(async im => { const u = await N.Store.mediaUrl(im.dataset.media); if (u) im.src = u; else im.remove(); });
@@ -22,16 +20,15 @@
   // departments, in the order a film is usually organised
   F.DESK_GROUPS = ['Direction', 'Production', 'Camera and light', 'Art and look', 'Sound', 'Safety and logistics', 'Post', 'Publicity'];
   F.deskAlerts = d => F.desks.flatMap(x => { try { return (x.alerts ? x.alerts(d) : []).map(a => ({ ...a, desk: x.id, label: x.label, icon: x.icon })); } catch (e) { return []; } });
-  F.tabs.push({ id: 'desks', label: 'Departments', order: 2, render(el, d) {
-    const desk = F.desks.find(x => x.id === cur) || F.desks[0]; cur = desk.id;
-    const all = F.deskAlerts(d), count = id => all.filter(a => a.desk === id && a.lvl === 'bad').length;
-    el.innerHTML = `<div class="fwrap wide dk"><nav class="dk-nav" aria-label="Departments">${F.DESK_GROUPS.map(g => { const ds = F.desks.filter(x => (x.group || 'Production') === g); return ds.length ? `<h5>${esc(g)}</h5>${ds.map(x => `<button data-desk="${x.id}" class="${x.id === cur ? 'on' : ''}"><span class="dk-ic" aria-hidden="true">${x.icon}</span><span><b>${esc(x.label)}</b><small>${esc(x.who)}</small></span>${count(x.id) ? `<em class="dk-n" title="Needs attention">${count(x.id)}</em>` : ''}</button>`).join('')}` : ''; }).join('')}</nav>
-      <section class="dk-body" data-desk-body="${desk.id}"></section></div>`;
-    const body = el.querySelector('.dk-body');
-    el.onclick = e => { const b = e.target.closest('[data-desk]'); if (b) { cur = b.dataset.desk; try { localStorage.setItem('itan:desk', cur); } catch (er) {} F.refresh(); } };
-    el.onchange = el.oninput = null;
-    desk.render(body, d);
-  } });
+  // each desk is a tab in the stage where that department does most of its work
+  const DESK_STAGE = { director: 'overview', prod: 'overview', ad: 'plan', art: 'plan', props: 'plan', ward: 'plan', hmu: 'plan', light: 'plan', grip: 'plan', safety: 'plan', transport: 'plan', food: 'plan', cont: 'shoot', dit: 'shoot', sound: 'shoot', bts: 'shoot', vfx: 'post', colour: 'post', music: 'post', legal: 'post' };
+  F.deskTabs = () => F.desks.forEach((x, i) => {
+    if (F.tabs.some(t => t.id === 'dk-' + x.id)) return;
+    F.setStage('dk-' + x.id, DESK_STAGE[x.id] || 'plan');
+    F.tabs.push({ id: 'dk-' + x.id, desk: true, label: x.label, icon: x.icon, order: 100 + (Object.keys(DESK_STAGE).indexOf(x.id) + 1 || 50 + i), badge: d => { try { return (x.alerts ? x.alerts(d) : []).filter(a => a.lvl === 'bad').length; } catch (e) { return 0; } },
+      render(el, d) { el.innerHTML = `<div class="fwrap wide dk1"><section class="dk-body" data-desk-body="${x.id}"></section></div>`; el.onclick = el.onchange = el.oninput = null; x.render.call(x, el.querySelector('.dk-body'), d); } });
+    if (F.sortTabs) F.sortTabs();
+  });
 
   /* ================= LIGHTING AND POWER (gaffer, DP, sparks) ================= */
   const FIX = [['Aputure 600d / 600x', 720], ['Aputure 300d / 300x', 350], ['Aputure 120d', 180], ['Amaran 200d / 200x', 200], ['Amaran 100d / 100x', 130], ['Nanlite Forza 500', 560], ['Nanlite Forza 300', 330], ['Nanlite Forza 60', 88], ['Godox SL60 / SL150', 150], ['LED panel (1×1)', 100], ['LED tube (4 ft)', 40], ['LED tube (2 ft)', 20], ['Fresnel 650 W', 650], ['Fresnel 1K', 1000], ['Fresnel 2K', 2000], ['HMI 1.2K (with ballast)', 1380], ['HMI 4K (with ballast)', 4600], ['Practical lamp', 60], ['Haze machine', 700], ['Monitors and video village', 300], ['Battery charging', 400], ['DIT / laptop station', 250]];

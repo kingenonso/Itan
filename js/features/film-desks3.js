@@ -65,24 +65,23 @@
     alerts(d) { const bad = (F.desk(d, 'dit', {}).log || []).filter(x => !(x.a && x.b)); return bad.length ? [{ lvl: 'bad', text: `Footage in only one place: ${bad.map(x => x.card).join(', ')}. Back it up twice before formatting.` }] : []; },
     render(el, d) {
       const D = F.desk(d, 'dit', {}), ui = this.ui = this.ui || {}, day = pickDay(d, ui), log = (D.log || []).filter(x => !day || x.day === day.id);
-      const mb = num(D.mbps) || 150, mins = num(D.mins) || 120, gbDay = mb * 60 * mins / 8 / 1000, total = gbDay * Math.max(1, d.days.length);
-      el.innerHTML = head('Camera and DIT', 'Log every card as it comes off the camera, tick each backup, and know how much storage the shoot needs. Never format a card until it’s in two places.') +
+            const camTab = F.tabs.find(x => x.id === 'camera');
+      if (ui.view === 'tools' && camTab) { el.innerHTML = head('Camera and DIT', 'Storage for the shoot, what a lens sees on your sensor, and shutter and ND for the look you want.') + `<div class="seg dk-seg"><button data-dv="cards">Cards and backups</button><button data-dv="tools" class="on">Camera tools</button></div><div class="dk-cam"></div>`;
+        camTab.render(el.querySelector('.dk-cam'), d); el.querySelector('.dk-seg').onclick = e => { const b = e.target.closest('[data-dv]'); if (b) { ui.view = b.dataset.dv; F.refresh(); } }; return; }
+      el.innerHTML = head('Camera and DIT', 'Log every card as it comes off the camera, tick each backup, and never format a card until it’s in two places.') + (camTab ? `<div class="seg dk-seg"><button data-dv="cards" class="on">Cards and backups</button><button data-dv="tools">Camera tools</button></div>` : '') +
         `<div class="dk-two"><section class="fsec"><div class="dk-h"><h3>Card log</h3>${dayPick(d, ui, 'data-dday')}</div>
           <div class="dk-scroll"><table class="ftable dk-dit"><thead><tr><th>Card</th><th>Camera</th><th>Clips</th><th>GB</th><th title="Copied to the first drive">Drive 1</th><th title="Copied to the second drive">Drive 2</th><th title="Checked: files open and play">Checked</th><th></th></tr></thead><tbody>
           ${log.map(x => `<tr data-dl="${esc(x.id)}" class="${x.a && x.b ? 'ok' : 'risk'}"><td><input data-dk="card" value="${esc(x.card)}"></td><td><input data-dk="cam" value="${esc(x.cam || '')}" placeholder="A"></td><td class="num"><input data-dk="clips" value="${esc(x.clips || '')}" inputmode="numeric"></td><td class="num"><input data-dk="gb" value="${esc(x.gb || '')}" inputmode="decimal"></td>
             ${['a', 'b', 'ok'].map(k => `<td class="c"><input type="checkbox" data-dk="${k}"${x[k] ? ' checked' : ''} aria-label="${k}"></td>`).join('')}<td class="act"><button class="ib xs" data-dldel aria-label="Remove">✕</button></td></tr>`).join('') || '<tr><td colspan="8" class="empty-row">No cards logged for this day</td></tr>'}</tbody></table></div>
           <div class="row"><button class="add" data-dladd>+ Card</button><span class="fhint">${log.reduce((n, x) => n + num(x.gb), 0).toFixed(0)} GB today · ${log.filter(x => x.a && x.b).length} of ${log.length} safely in two places</span></div></section>
-        <section class="fsec"><h3>Storage for the shoot</h3><div class="dk-grid2"><label>Recording format${sel('data-dmbps', CODECS.map(([n, m]) => [m, `${n} · ${m} Mb/s`]), mb)}</label><label>Minutes recorded a day<input data-dmins value="${mins}" inputmode="numeric"></label></div>
-          <div class="dk-meter"><div><small>Each day</small><b>${gbDay >= 1000 ? (gbDay / 1000).toFixed(1) + ' TB' : Math.ceil(gbDay) + ' GB'}</b><span>per copy</span></div><div><small>Whole shoot, two copies</small><b>${(total * 2 / 1000).toFixed(1)} TB</b><span>${d.days.length || 1} days</span></div><div><small>Cards</small><b>${Math.ceil(gbDay / 256) + 1} × 256 GB</b><span>a day, with one spare</span></div></div>
-          <label class="dk-lab">Camera settings for everyone<textarea data-dnote rows="3" placeholder="Shutter 180°, ISO 800, 5600 K, S-Log3 / S-Gamut3.Cine, 23.976 fps">${esc(D.notes || '')}</textarea></label></section></div>`;
+        <section class="fsec"><h3>Settings for every camera</h3><label class="dk-lab">Camera settings for everyone<textarea data-dnote rows="3" placeholder="Shutter 180°, ISO 800, 5600 K, S-Log3 / S-Gamut3.Cine, 23.976 fps">${esc(D.notes || '')}</textarea></label></section></div>`;
       el.onchange = e => { const t = e.target;
         if (t.dataset.dday !== undefined) { ui.day = t.value; return F.refresh(); }
-        if (t.dataset.dmbps !== undefined) return W('dit', () => ({}), x => { x.mbps = t.value; });
-        if (t.dataset.dmins !== undefined) return W('dit', () => ({}), x => { x.mins = t.value; });
         if (t.dataset.dnote !== undefined) return W('dit', () => ({}), x => { x.notes = t.value; }, true);
         const r = t.closest('[data-dl]'); if (r && t.dataset.dk) W('dit', () => ({}), x => { const it = x.log.find(y => y.id === r.dataset.dl); it[t.dataset.dk] = t.type === 'checkbox' ? t.checked : t.value.trim(); });
       };
       el.onclick = e => { const t = e.target;
+        const dv = t.closest('[data-dv]'); if (dv) { ui.view = dv.dataset.dv; return F.refresh(); }
         if (t.closest('[data-dladd]')) { const n = log.length + 1, cam = (log[log.length - 1] || {}).cam || 'A'; return W('dit', () => ({}), x => { (x.log = x.log || []).push({ id: F.uid(), day: day && day.id, card: `${cam}${String((x.log.filter(y => (y.cam || 'A') === cam).length) + 1).padStart(3, '0')}`, cam, t: Date.now() }); }); }
         const dl = t.closest('[data-dldel]'); if (dl) { const id = dl.closest('[data-dl]').dataset.dl; return W('dit', () => ({}), x => { x.log = x.log.filter(y => y.id !== id); }); }
       };
@@ -391,4 +390,5 @@
     if (safe.length || haz.length) out.push(`<h3>Safety</h3>${safe.length ? `<div class="cs-grid">${safe.map(([k, v]) => `<div><small>${k}</small><p>${esc(v)}</p></div>`).join('')}</div>` : ''}${haz.map(s => `<p class="cs-notes"><b>Scene ${esc(s.num)}:</b> ${esc(S.risk[s.id].controls)}</p>`).join('')}`);
     return out.join('');
   };
+  F.deskTabs();
 })();
