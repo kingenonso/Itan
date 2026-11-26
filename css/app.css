@@ -29,7 +29,8 @@
   --warn-soft:light-dark(#fff1c2,#433514);--warn-ink:light-dark(#7a5200,#ffd27a);
   --bad-soft:light-dark(#ffe0dc,#47211e);--bad-ink:light-dark(#b3261e,#ff9b91);
   --good-soft:light-dark(#d4f0df,#1b3b2a);--good-ink:light-dark(#1d6b42,#86dcae);
-  --deep:light-dark(#18191c,#121315);   /* the darkest panels: NOW on set, the slate */
+  --deep:light-dark(#18191c,#121315);
+  --sunk:light-dark(#efeef3,#141519);   /* quiet panels and chips inside a card */   /* the darkest panels: NOW on set, the slate */
   --spring:cubic-bezier(.34,1.56,.64,1);
   --glide:cubic-bezier(.2,.8,.2,1);
 }

@@ -162,3 +162,14 @@ The app talks to storage only through `js/storage-local.js`. A cloud version add
 ## Rename the app
 
 Change the name in `js/config.js`, the `<title>` in `index.html`, and `name`/`short_name` in `manifest.json`.
+
+## Working on the code
+
+The web app is packed into two small files for speed (`js/itan.min.js` and `css/itan.min.css`), so phones on slow data download 4 files instead of 50. After changing any file in `js/` or `css/`, run:
+
+```
+npm install
+npm run build:web
+```
+
+This also updates `index.html` and the offline cache in `sw.js`. While working, open `dev.html` to use the unpacked files directly. The list and order of files is in `scripts/web-files.json`; add new feature files there. The desktop apps run the same packing step automatically when they build.
