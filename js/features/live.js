@@ -232,11 +232,13 @@
   /* ---------- start up ---------- */
   N.hooks.ready.push(async () => {
     if (!API) return;
+    // read an invite link straight away, before anything else can change the address
+    const h = location.hash.match(/^#join=([A-Za-z0-9_-]{8,64})\.([A-Za-z0-9_-]{8,64})$/);
+    if (h) history.replaceState(null, '', location.pathname + location.search);
     me = await Store.getKV('liveMe').catch(() => null) || null;
     rooms = (await Store.getKV('liveRooms').catch(() => null)) || [];
     rooms.forEach(r => { r.outbox = r.outbox || {}; delete r.mount; connect(r); });
-    const h = location.hash.match(/^#join=([A-Za-z0-9_-]{8,64})\.([A-Za-z0-9_-]{8,64})$/);
-    if (h) { history.replaceState(null, '', location.pathname + location.search); join(h[1], h[2]); }
+    if (h) join(h[1], h[2]);
   });
   window.addEventListener('hashchange', () => { const h = location.hash.match(/^#join=([A-Za-z0-9_-]{8,64})\.([A-Za-z0-9_-]{8,64})$/); if (h) { history.replaceState(null, '', location.pathname + location.search); join(h[1], h[2]); } });
 })();

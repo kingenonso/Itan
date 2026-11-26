@@ -42,6 +42,10 @@
   };
   F.close = () => { if (!ws) return; ws.remove(); ws = null; document.body.classList.remove('filming'); N.render(); };
   F.isOpen = () => !!ws;
+  F.tab = () => tab;
+  // when a teammate changes the film while the workspace is open, show it (unless you're typing)
+  let lastSnap = '';
+  N.hooks.render.push(() => { if (!ws) return; const d = F.data(); if (!d) return; const snap = JSON.stringify(d); if (snap === lastSnap) return; if (N.isEditing() && ws.contains(document.activeElement)) return; lastSnap = snap; F.refresh(); });
   F.refresh = () => {
     if (!ws) return; const d = F.data(); if (!d) return F.close();
     const t = F.tabs.find(x => x.id === tab) || F.tabs[0]; tab = t.id;
@@ -49,6 +53,7 @@
     ws.innerHTML = `<header class="fhead"><div class="ftitle"><span class="clap">${F.icon}</span><input id="fTitle" value="${esc(d.title)}" aria-label="Film title" ${N.P.canWrite ? '' : 'readonly'}></div>
       <nav class="ftabs">${F.tabs.map(x => `<button data-ftab="${x.id}" class="${x.id === tab ? 'on' : ''}">${esc(x.label)}</button>`).join('')}</nav>
       <button class="ib" id="fwsClose" aria-label="Close film workspace">Done</button></header><div class="fbody" data-tab="${t.id}"></div>`;
+    lastSnap = JSON.stringify(d);
     const body = ws.querySelector('.fbody'); t.render(body, d); body.scrollTop = sc; const on = ws.querySelector('.ftabs .on'); if (on && on.scrollIntoView) on.scrollIntoView({ inline: 'center', block: 'nearest' });
     ws.querySelector('#fTitle').onchange = e => F.change(dd => { dd.title = e.target.value.trim() || 'Our film'; }, true);
   };
