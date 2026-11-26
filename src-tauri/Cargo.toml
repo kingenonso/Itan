@@ -1,6 +1,6 @@
 [package]
 name = "notera"
-version = "1.1.0"
+version = "1.2.0"
 description = "Notera: visual boards for notes, pictures, videos and plans"
 authors = ["kingenonso"]
 edition = "2021"

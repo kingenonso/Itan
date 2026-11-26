@@ -49,7 +49,7 @@
     ws.innerHTML = `<header class="fhead"><div class="ftitle"><span class="clap">${F.icon}</span><input id="fTitle" value="${esc(d.title)}" aria-label="Film title" ${N.P.canWrite ? '' : 'readonly'}></div>
       <nav class="ftabs">${F.tabs.map(x => `<button data-ftab="${x.id}" class="${x.id === tab ? 'on' : ''}">${esc(x.label)}</button>`).join('')}</nav>
       <button class="ib" id="fwsClose" aria-label="Close film workspace">Done</button></header><div class="fbody" data-tab="${t.id}"></div>`;
-    const body = ws.querySelector('.fbody'); t.render(body, d); body.scrollTop = sc;
+    const body = ws.querySelector('.fbody'); t.render(body, d); body.scrollTop = sc; const on = ws.querySelector('.ftabs .on'); if (on && on.scrollIntoView) on.scrollIntoView({ inline: 'center', block: 'nearest' });
     ws.querySelector('#fTitle').onchange = e => F.change(dd => { dd.title = e.target.value.trim() || 'Our film'; }, true);
   };
   document.addEventListener('keydown', e => { if (ws && e.key === 'Escape' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $('#dlg').hidden) { e.stopPropagation(); F.close(); } }, true);
@@ -61,10 +61,13 @@
   $('#btools').addEventListener('click', e => { if (e.target.closest('#fOpen')) F.open(); });
 
   /* ---------- launcher cards on boards ---------- */
-  const VIEWS = { breakdown: 'Script breakdown', schedule: 'Shooting schedule', callsheets: 'Call sheets', shots: 'Shot list', people: 'Cast and crew' };
+  const VIEWS = { script: 'Screenplay', budget: 'Budget', reports: 'Reports', breakdown: 'Script breakdown', schedule: 'Shooting schedule', callsheets: 'Call sheets', shots: 'Shot list', people: 'Cast and crew' };
   F.summary = (view, d) => {
     if (!d) return 'Open';
     const sc = d.scenes.length, days = d.days.length, shots = F.allShots ? F.allShots().length : 0;
+    if (view === 'script') return d.screenplay && d.screenplay.length ? `${d.screenplay.filter(l => l.t === 'scene').length} scenes written` : 'Write your script';
+    if (view === 'budget') return d.budget && F.budgetTotals ? (d.budget.cur + ' ' + Math.round(F.budgetTotals(d.budget).total).toLocaleString()) : 'Plan what it will cost';
+    if (view === 'reports') return 'Day Out of Days, one-liner and more';
     return view === 'breakdown' ? (sc ? `${sc} scene${sc === 1 ? '' : 's'}` : 'Paste your script to start')
       : view === 'schedule' ? (days ? `${days} shoot day${days === 1 ? '' : 's'} · ${sc} scenes` : 'Plan your shoot days')
       : view === 'callsheets' ? (days ? `${days} call sheet${days === 1 ? '' : 's'}` : 'Made from your schedule')

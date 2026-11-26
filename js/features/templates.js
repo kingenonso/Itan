@@ -31,7 +31,8 @@
         list('Before the shoot', ['Lock the script', 'Break down the script', 'Storyboard key scenes', 'Make the shot list', 'Cast the actors', 'Scout and confirm locations', 'Get permission for every location', 'Book the crew', 'Plan the shoot days', 'Confirm the budget', 'Gear list and rentals', 'Release forms ready'], 40, 110, 320);
         sub('Script and story', '#8f5ae8', 400, 110, () => {
           head('Script and story', 40, 30);
-          launch('breakdown', 720, 110, 320);
+          launch('script', 720, 110, 320);
+          launch('breakdown', 720, 220, 320);
           note('Logline\n\n', 40, 110, 300); note('Synopsis\n\nBeginning:\nMiddle:\nEnd:', 360, 110, 320);
           col('Characters', ['Name · age · what they want', 'Name · age · what they want'], 40, 300, 300);
           col('Script drafts', ['Draft 1 · paste a link to the script or drop the PDF here'], 360, 300, 320);
@@ -63,11 +64,13 @@
         sub('Schedule', '#737a84', 820, 330, () => {
           head('Shoot schedule', 40, 30);
           launch('schedule', 40, 100, 320);
+          launch('reports', 40, 210, 320);
           note('Drag scene strips into shoot days. Shoot scenes in the same place together, whatever their order in the story. Group by location does that for you.', 400, 100, 360);
         });
         sub('Budget', '#36a86d', 400, 550, () => {
           head('Budget', 40, 30);
-          ['Cast', 'Crew', 'Locations', 'Gear rental', 'Transport', 'Food on set', 'Props and wardrobe', 'Post-production', 'Contingency (10%)'].forEach((t, i) => note(t + '\n\nPlanned:\nSpent:', 40 + (i % 3) * 260, 110 + Math.floor(i / 3) * 170, 240));
+          launch('budget', 40, 110, 320);
+          note('The budget adds up every department, with a contingency on top, and tracks what you actually spend. Add cast and crew fills in a line for everyone on the People tab.', 400, 110, 360);
         });
         sub('Gear', '#2a9ec4', 610, 550, () => {
           head('Gear', 40, 30);

@@ -109,7 +109,7 @@
       N.settled();
     };
   }
-  F.parseScript = parse;
+  F.parseScript = parse; F.applyScript = apply; F.readScriptFile = async f => /\.pdf$/i.test(f.name) ? fromPDF(f) : /\.fdx$/i.test(f.name) ? fromFDX(await f.text()) : f.text();
 
   /* ---------- the Breakdown tab ---------- */
   const parsePages = v => { v = String(v).trim(); const m = v.match(/^(\d+)?\s*(?:(\d)\/8)?$/); if (!m) return null; return (+(m[1] || 0)) * 8 + (+(m[2] || 0)); };
