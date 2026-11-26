@@ -16,18 +16,27 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 
 ## Features
 
-- Boards are portals: each board card shows a live miniature of what's inside, and opening one zooms you through it
-- A floating dock of tools at the bottom, and a ring of tools wherever you double-click
-- Checklists with progress, voice notes, and a recorded voice explanation for any board
-- Notes, headings, to-do lists, links, pictures, videos, colour swatches
-- Boards inside boards, with a breadcrumb trail and an "All boards" tree
-- Columns you can drag cards into and out of
-- Lines connecting cards
-- Search across every board (Ctrl+K)
-- Undo/redo, duplicate, colours, resize, zoom and pan, pinch on touch screens
-- Paste or drop links, text, pictures and videos straight onto the board
-- Several open tabs stay in sync
-- Storage panel: see space used, protect your data from browser clean-up, remove unused media
+**What makes it different**
+- **Boards are portals.** Each board card shows a live miniature of what's inside, and opening one zooms you through it.
+- **Narrated walkthroughs.** Record your voice while you move around a board and click cards. Playback moves the screen and highlights each card in time with your voice.
+- **Present mode** (P). A slideshow that glides from card to card in reading order.
+- **Voice to text.** Optional, on the device: voice notes, board explanations and walkthroughs get written out and become searchable. Needs a one-time download of about 80 MB, then works offline.
+
+**Every day**
+- **Today** (T). Every unticked checklist item from every board, grouped by due date, with reminders while Notera is open or installed.
+- **Share to WhatsApp, Telegram or email** through the phone's share sheet. When installed, Notera also appears in other apps' share menus, and shared items land on an Inbox board.
+- **History.** Slide back through earlier versions of a board and restore one.
+
+**Trust and polish**
+- **PIN lock** for a board and everything inside it. This keeps casual eyes out on a shared phone, but it is not encryption, and a forgotten PIN can't be recovered.
+- **Tidy** lines cards up neatly. Dragging snaps to nearby cards (hold Alt to place freely).
+- **Templates**: wedding or event, business plan, content calendar, study timetable, moving house, trip, weekly planner, moodboard.
+- **Save as picture or PDF** for people who don't use Notera.
+
+**The basics**
+- Notes, headings, checklists with due dates, links, pictures, videos, voice notes, colour swatches, columns, lines between cards
+- Boards inside boards, a floating dock of tools, and a ring of tools wherever you double-click
+- Search across every board (Ctrl+K), undo and redo, works offline, installs like an app
 
 ## Project layout
 
@@ -38,6 +47,7 @@ Each device and browser keeps its own copy. To move or share a board, use **Shar
 | `js/config.js` | App name and which storage to use (`local` today) |
 | `js/storage-local.js` | Saves boards and media on the user's device (IndexedDB) |
 | `js/app.js` | The board app itself |
+| `js/features/` | Today, sharing, walkthroughs and Present, voice to text, history, PIN lock, tidy, templates, export |
 | `sw.js` | Offline support |
 | `manifest.json`, `icons/` | Install as an app |
 

@@ -1,5 +1,6 @@
 {
 const $=s=>document.querySelector(s);
+const N=window.N={hooks:{render:[],saved:[],beforeOpen:async()=>true,isLocked:()=>false,snapDrag:()=>{},dragEnd:()=>{},historyMedia:async()=>[],ready:[]}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -30,13 +31,13 @@ let drag=null,tdrag=null,pinch=null;const pointers=new Map();
 
 /* ---------- documents <-> boards ---------- */
 function stable(v){if(Array.isArray(v))return '['+v.map(stable).join(',')+']';if(v&&typeof v=='object')return '{'+Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>JSON.stringify(k)+':'+stable(v[k])).join(',')+'}';return JSON.stringify(v===undefined?null:v)}
-function docsOf(boards){const m=new Map();for(const b of Object.values(boards)){m.set('b:'+b.id,{kind:'board',id:b.id,title:b.title,parent:b.parent,links:b.links,created:b.created||0,voice:b.voice||null,voiceLen:b.voiceLen||0});for(const c of b.cards)m.set('c:'+c.id,{...c,_b:b.id})}return m}
-function buildBoards(m){const bs={};for(const[k,v]of m)if(k[0]=='b'&&v&&okId(v.id))bs[v.id]={id:v.id,title:v.title,parent:v.parent,links:v.links,created:v.created,voice:v.voice,voiceLen:v.voiceLen,cards:[]};
+function docsOf(boards){const m=new Map();for(const b of Object.values(boards)){m.set('b:'+b.id,{kind:'board',id:b.id,title:b.title,parent:b.parent,links:b.links,created:b.created||0,voice:b.voice||null,voiceLen:b.voiceLen||0,extra:b.extra&&Object.keys(b.extra).length?b.extra:null});for(const c of b.cards)m.set('c:'+c.id,{...c,_b:b.id})}return m}
+function buildBoards(m){const bs={};for(const[k,v]of m)if(k[0]=='b'&&v&&okId(v.id))bs[v.id]={id:v.id,title:v.title,parent:v.parent,links:v.links,created:v.created,voice:v.voice,voiceLen:v.voiceLen,extra:v.extra?JSON.parse(JSON.stringify(v.extra)):null,cards:[]};
  for(const[k,v]of m)if(k[0]=='c'&&v&&bs[v._b]){const c={...v};delete c._b;bs[v._b].cards.push(c)}
  for(const id in bs){bs[id].cards.sort((a,b)=>(+a.o||0)-(+b.o||0));normalize(bs[id])}return bs}
-function normalize(b){b.title=String(b.title??'Untitled board');b.parent=b.parent==null?null:String(b.parent);b.created=+b.created||0;b.voice=typeof b.voice=='string'&&b.voice?b.voice:null;b.voiceLen=+b.voiceLen||0;
+function normalize(b){b.title=String(b.title??'Untitled board');b.parent=b.parent==null?null:String(b.parent);b.created=+b.created||0;b.voice=typeof b.voice=='string'&&b.voice?b.voice:null;b.voiceLen=+b.voiceLen||0;b.extra=b.extra&&typeof b.extra=='object'?b.extra:{};
  b.cards=(Array.isArray(b.cards)?b.cards:[]).filter(c=>c&&TYPES.includes(c.type)).map((c,i)=>{const k={...c,id:okId(String(c.id))?String(c.id):uid(),x:+c.x||0,y:+c.y||0,w:+c.w||DEFW[c.type],text:String(c.text??''),o:Number.isFinite(+c.o)&&c.o!==null&&c.o!==''?+c.o:i};
-  if(k.type=='todo')k.items=(Array.isArray(c.items)?c.items:[]).map(i=>({t:String(i&&i.t||''),d:!!(i&&i.d)}));
+  if(k.type=='todo')k.items=(Array.isArray(c.items)?c.items:[]).map(i=>{const o={t:String(i&&i.t||''),d:!!(i&&i.d)};if(i&&/^\d{4}-\d{2}-\d{2}$/.test(i.due||''))o.due=i.due;if(i&&i.id)o.id=String(i.id);return o});
   if(k.type=='column')k.items=(Array.isArray(c.items)?c.items:[]).map(String);
   if(k.col!=null)k.col=String(k.col);return k});
  b.links=(Array.isArray(b.links)?b.links:[]).filter(l=>l&&l.from&&l.to).map(l=>({id:String(l.id||uid()),from:String(l.from),to:String(l.to)}));return b}
@@ -61,7 +62,7 @@ const touch=dirty;
 function flushNow(){clearTimeout(flushT);if(!P.dirty)return;P.dirty=false;const want=docsOf(S.boards),t=Date.now();
  for(const[k,v]of want){const s=stable(v);if(P.sent.get(k)!==s){P.sent.set(k,s);P.mine.set(k,t);send(k,JSON.parse(s))}}
  for(const k of P.localKeys)if(!want.has(k)){P.sent.delete(k);P.mine.set(k,t);send(k,null)}
- P.localKeys=new Set(want.keys());settled()}
+ P.localKeys=new Set(want.keys());settled();N.hooks.saved.forEach(f=>{try{f()}catch(e){}})}
 function adoptRemote(){const nb=buildBoards(P.remote),nd=docsOf(nb);P.sent=new Map();for(const[k,v]of nd)P.sent.set(k,stable(v));P.localKeys=new Set(nd.keys());S.boards=nb}
 let mergeT;function mergeSoon(){clearTimeout(mergeT);mergeT=setTimeout(merge,120)}
 function merge(){if(P.dirty)flushNow();const local=docsOf(S.boards),out=new Map(P.remote);
@@ -139,17 +140,20 @@ function inner(c){
  switch(c.type){
  case 'note':return ed('text',c.text,'Type something…');
  case 'heading':return ed('text',c.text,'Heading','txt h');
- case 'todo':{const n=c.items.length,dn=c.items.filter(i=>i.d).length;return ed('text',c.text,'Checklist','txt tt')+(n?`<div class="prog" title="${dn} of ${n} done"><i style="width:${(dn/n*100).toFixed(1)}%"></i></div><div class="pc">${dn==n?'All done':dn+' of '+n+' done'}</div>`:'')+`<ul class="todo">${c.items.map((it,i)=>`<li class="${it.d?'done':''}"><button class="ck" data-act="ck" data-i="${i}" aria-label="Tick item"><svg viewBox="0 0 12 12"><path d="M2 6.5l2.5 2.5L10 3"/></svg></button>${ed('item',it.t,'Item','txt it',`data-i="${i}"`)}</li>`).join('')}</ul><div class="tdrow"><button class="add" data-act="additem">+ Add item</button>${dn?'<button class="add" data-act="cleardone">Clear done</button>':''}</div>`}
+ case 'todo':{const n=c.items.length,dn=c.items.filter(i=>i.d).length;return ed('text',c.text,'Checklist','txt tt')+(n?`<div class="prog" title="${dn} of ${n} done"><i style="width:${(dn/n*100).toFixed(1)}%"></i></div><div class="pc">${dn==n?'All done':dn+' of '+n+' done'}</div>`:'')+`<ul class="todo">${c.items.map((it,i)=>`<li class="${it.d?'done':''}"><button class="ck" data-act="ck" data-i="${i}" aria-label="Tick item"><svg viewBox="0 0 12 12"><path d="M2 6.5l2.5 2.5L10 3"/></svg></button>${ed('item',it.t,'Item','txt it',`data-i="${i}"`)}${dueChip(it,i)}</li>`).join('')}</ul><div class="tdrow"><button class="add" data-act="additem">+ Add item</button>${dn?'<button class="add" data-act="cleardone">Clear done</button>':''}</div>`}
  case 'link':{if(!c.url)return P.canWrite?`<form class="lf"><input name="u" placeholder="Paste a web address" autocomplete="off" aria-label="Web address"><button>Add</button></form>`:'<div class="ph" style="height:auto;padding:12px">Empty link</div>';
   let host='';try{host=new URL(c.url).hostname.replace(/^www\./,'')}catch(e){}
   return `<div class="lk"><span class="fav">${esc((host[0]||'?').toUpperCase())}</span><div class="lkm">${ed('text',c.text,host||'Link title','txt lt')}<span class="host">${esc(host||c.url)}</span></div>${/^https:\/\//i.test(c.url)?`<a class="open" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open link">↗</a>`:''}</div>`}
- case 'image':case 'video':case 'audio':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap');
+ case 'image':case 'video':case 'audio':return `<div class="im" data-media="${esc(c.media||'')}">${mediaTag(c)}</div>`+ed('text',c.text,'Add a caption','txt cap')+(c.type=='audio'&&N.hooks.audioExtra?N.hooks.audioExtra(c):'');
  case 'board':{const b=S.boards[c.board];const n=b?b.cards.filter(x=>!x.col).length:0;
   return `<button class="bic" data-act="open" aria-label="Open board">${preview(b)}<span class="door"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span></button>`+(b?ed('btitle',b.title,'Untitled board','txt bt'):'<div class="bt">Missing board</div>')+`<div class="sub">${n} card${n==1?'':'s'}${b&&b.voice?' · <span class="vb" title="Has a voice explanation">voice explanation</span>':''}</div>`}
  case 'column':{const kids=c.items.map(id=>find(id)).filter(Boolean);return ed('text',c.text,'Column title','txt ct')+`<div class="colb" data-col="${esc(c.id)}">${kids.map(k=>cardHTML(k,true)).join('')||'<div class="empty">Drop cards here</div>'}</div>`}
  case 'swatch':{const h=okc(c.hex)||'#737a84';return `<label class="sw" style="background:${h}"><input type="color" value="${h}" data-act="hex" aria-label="Pick colour"${P.canWrite?'':' disabled'}></label>`+ed('text',c.text,h,'txt cap')}}}
 const EH={note:72,heading:34,todo:120,link:66,image:160,video:210,audio:84,board:170,swatch:136};
-function preview(b){if(!b)return '';const cs=b.cards.filter(c=>!c.col).slice(0,80);
+function dueLabel(d){const t=new Date();t.setHours(0,0,0,0);const x=new Date(d+'T00:00:00');const n=Math.round((x-t)/864e5);return n==0?'Today':n==1?'Tomorrow':n==-1?'Yesterday':x.toLocaleDateString([], {day:'numeric',month:'short'})}
+function dueChip(it,i){if(it.due){const late=!it.d&&it.due<todayStr();return `<button class="due${late?' late':''}${it.due===todayStr()&&!it.d?' now':''}" data-act="due" data-i="${i}" title="Change due date">${esc(dueLabel(it.due))}</button>`}return P.canWrite?`<button class="due add-due" data-act="due" data-i="${i}" aria-label="Add a due date" title="Add a due date"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="3"/><path d="M4 10h16M9 3.5v4M15 3.5v4"/></svg></button>`:''}
+function todayStr(off=0){const d=new Date();d.setDate(d.getDate()+off);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function preview(b){if(!b)return '';if(N.hooks.isLocked(b.id))return '<svg viewBox="0 0 160 110"><rect class="emptymini" x="64" y="50" width="32" height="26" rx="5"/><path d="M71 50v-6a9 9 0 0 1 18 0v6" fill="none" stroke-width="4" class="lockarc"/></svg>';const cs=b.cards.filter(c=>!c.col).slice(0,80);
  if(!cs.length)return '<svg viewBox="0 0 160 110"><rect class="emptymini" x="58" y="38" width="44" height="34" rx="7" opacity=".55"/></svg>';
  const rs=cs.map(c=>({x:c.x,y:c.y,w:c.w||200,h:c.type=='column'?60+(c.items||[]).length*70:(EH[c.type]||80),t:c.type,k:!!okc(c.color)}));
  const x0=Math.min(...rs.map(r=>r.x)),y0=Math.min(...rs.map(r=>r.y)),x1=Math.max(...rs.map(r=>r.x+r.w)),y1=Math.max(...rs.map(r=>r.y+r.h));
@@ -160,7 +164,7 @@ function cardHTML(c,inCol,idx){const cl=okc(c.color);const strip=cl&&!['board','
 function render(){S.needRender=false;const b=B();if(!b)return;world.querySelectorAll(':scope>.card').forEach(e=>e.remove());
  world.insertAdjacentHTML('beforeend',b.cards.filter(c=>!c.col||!find(c.col)).map((c,i)=>cardHTML(c,false,i)).join(''));S.popId=null;
  if(S.entering){S.entering=false;world.classList.remove('enter');void world.offsetWidth;world.classList.add('enter');clearTimeout(S.enterT);S.enterT=setTimeout(()=>world.classList.remove('enter'),1400)}
- $('#empty').hidden=b.cards.length>0;crumbs();explainBar();applyView();drawLinks();buildCtx();stats();setMode()}
+ $('#empty').hidden=b.cards.length>0;crumbs();explainBar();applyView();drawLinks();buildCtx();stats();setMode();N.hooks.render.forEach(f=>{try{f(b)}catch(e){console.error(e)}})}
 function applyView(){const v=V();world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.z})`;canvas.style.backgroundPosition=`${v.x}px ${v.y}px`;canvas.style.backgroundSize=`${24*v.z}px ${24*v.z}px`;$('#zl').textContent=Math.round(v.z*100)+'%';placeCtx()}
 function edge(a,b){const ax=a.x+a.w/2,ay=a.y+a.h/2,dx=b.x+b.w/2-ax,dy=b.y+b.h/2-ay;if(!dx&&!dy)return[ax,ay];const s=Math.min(dx?Math.abs((a.w/2+7)/dx):1e9,dy?Math.abs((a.h/2+7)/dy):1e9);return[ax+dx*s,ay+dy*s]}
 function drawLinks(){const b=B();if(!b)return;svg.innerHTML=`<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs><g transform="translate(20000 20000)">`+b.links.map(l=>{const A=wrect(l.from),Z=wrect(l.to);if(!A||!Z)return'';const[x1,y1]=edge(A,Z),[x2,y2]=edge(Z,A),d=`M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`;return `<g class="${S.selLink==l.id?'sel':''}" data-link="${esc(l.id)}"><path class="hit" d="${d}"/><path class="vis" d="${d}" marker-end="url(#ah)"/></g>`}).join('')+'</g>'}
@@ -202,6 +206,7 @@ function portalAnim(from,to,color,ms,fadeEnd){const d=document.createElement('di
  const kf=[from,to].map(r=>({left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',borderRadius:r.br+'px',opacity:r.op??1}));
  const a=d.animate(kf,{duration:ms,easing:'cubic-bezier(.7,0,.2,1)',fill:'forwards'});return a.finished.then(()=>d)}
 async function openBoard(id,after){if(!S.boards[id])return toast('That board no longer exists');if(id===S.cur){after&&after();return}
+ if(!(await N.hooks.beforeOpen(id)))return;
  const fin=()=>{try{location.hash=id}catch(e){}after&&after()};
  if(calm()||portalBusy){show(id);fin();return}
  portalBusy=true;const full={left:0,top:0,width:innerWidth,height:innerHeight,br:0};
@@ -306,7 +311,7 @@ canvas.addEventListener('pointermove',e=>{if(pointers.has(e.pointerId))pointers.
  if(drag.kind=='pan'){const v=V();v.x=drag.v.x+dx;v.y=drag.v.y+dy;applyView();return}
  if(drag.kind=='rs'){const c=find(drag.id);if(!c)return;c.w=Math.max(MINW[c.type],Math.round(drag.w+dx/z));el(c.id).style.width=c.w+'px';linksSoon();return}
  if(drag.kind=='maybe'){if(Math.hypot(dx,dy)<5||!P.canWrite)return;startMove()}
- if(drag.kind=='move'){const vx=e.clientX-(drag.lx??e.clientX);drag.lx=e.clientX;drag.tilt=(drag.tilt||0)*.75+clamp(vx*.9,-8,8)*.25;const tl=drag.tilt.toFixed(2)+'deg';drag.items.forEach(i=>i.e.style.setProperty('--tilt',tl));const wx=dx/z,wy=dy/z;drag.items.forEach(i=>{i.c.x=Math.round(i.x+wx);i.c.y=Math.round(i.y+wy);i.e.style.left=i.c.x+'px';i.e.style.top=i.c.y+'px'});
+ if(drag.kind=='move'){const vx=e.clientX-(drag.lx??e.clientX);drag.lx=e.clientX;drag.tilt=(drag.tilt||0)*.75+clamp(vx*.9,-8,8)*.25;const tl=drag.tilt.toFixed(2)+'deg';drag.items.forEach(i=>i.e.style.setProperty('--tilt',tl));const wx=dx/z,wy=dy/z;drag.items.forEach(i=>{i.c.x=Math.round(i.x+wx);i.c.y=Math.round(i.y+wy)});if(drag.items.length==1)N.hooks.snapDrag(drag.items[0].c,e.altKey);drag.items.forEach(i=>{i.e.style.left=i.c.x+'px';i.e.style.top=i.c.y+'px'});
   const ex=new Set(drag.items.map(i=>i.c.id));const tg=dropTarget(document.elementFromPoint(e.clientX,e.clientY),ex,drag.items.length==1?drag.items[0].c.type:null,e.clientY);
   clearDrop();if(tg)tg.el.classList.add('drop');drag.tgt=tg;linksSoon()}});
 function startMove(){const c=find(drag.id);if(!c){drag=null;return}
@@ -319,7 +324,7 @@ function endPtr(e){pointers.delete(e.pointerId);canvas.classList.remove('pan');
  if(d.kind=='pan'){saveViewSoon();if(S.needRender)render();return}
  if(d.kind=='rs'){touch();linksSoon();if(S.needRender)render();return}
  if(d.kind=='maybe'){if(S.needRender){render();return}if(d.editable&&e.type=='pointerup'){d.editable.focus();placeCaret(e.clientX,e.clientY)}return}
- if(d.kind=='move'){d.items.forEach(i=>{i.e.classList.remove('dragging');i.e.style.removeProperty('--tilt')});clearDrop();const t=d.tgt;
+ if(d.kind=='move'){N.hooks.dragEnd();d.items.forEach(i=>{i.e.classList.remove('dragging');i.e.style.removeProperty('--tilt')});clearDrop();const t=d.tgt;
   if(t&&t.type=='board'){const bc=find(t.id);if(bc)moveToBoard(d.items.map(i=>i.c),bc.board)}
   else if(t&&t.type=='col'){const col=find(t.id),c=d.items[0].c;if(col){c.col=col.id;col.items.splice(t.idx,0,c.id);S.sel=new Set([c.id])}}
   touch();render()}}
@@ -356,7 +361,7 @@ world.addEventListener('input',e=>{if(!P.canWrite)return;const t=e.target,card=t
  if(!S.editSnapped){snap();S.editSnapped=true}
  if(t.dataset.act=='hex'){c.hex=t.value;t.parentNode.style.background=t.value;const cap=card.querySelector('.cap');if(cap)cap.dataset.ph=t.value;touch();return}
  const f=t.dataset.f,v=t.innerText.replace(/\n$/,'');if(!f)return;
- if(f=='text')c.text=v;else if(f=='item'){if(c.items[+t.dataset.i])c.items[+t.dataset.i].t=v}else if(f=='btitle'){const b=S.boards[c.board];if(b)b.title=v}
+ if(f=='text')c.text=v;else if(f=='transcript')c.transcript=v;else if(f=='item'){if(c.items[+t.dataset.i])c.items[+t.dataset.i].t=v}else if(f=='btitle'){const b=S.boards[c.board];if(b)b.title=v}
  touch();linksSoon()});
 world.addEventListener('keydown',e=>{const t=e.target;if(!t.dataset||!t.dataset.f||!P.canWrite)return;
  if(e.key=='Escape'){t.blur();window.getSelection().removeAllRanges();return}
@@ -372,6 +377,10 @@ world.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(!a)
  if(!P.canWrite)return;
  if(k=='ck'){snap();const it=c.items[+a.dataset.i];if(it)it.d=!it.d;touch();render()}
  else if(k=='additem'){snap();c.items.push({t:'',d:false});touch();render();focusItem(c,c.items.length-1)}
+ else if(k=='due'){const i=+a.dataset.i,it=c.items[i];if(!it)return;const inp=document.createElement('input');inp.type='date';inp.value=it.due||todayStr();inp.style.cssText='position:fixed;opacity:0;pointer-events:none;left:'+e.clientX+'px;top:'+e.clientY+'px';document.body.append(inp);
+  const done=()=>{inp.remove()};inp.addEventListener('change',()=>{snap();if(inp.value)it.due=inp.value;else delete it.due;touch();render();done()});inp.addEventListener('blur',()=>setTimeout(done,300));
+  try{inp.showPicker()}catch(err){inp.style.cssText='position:fixed;left:'+Math.min(e.clientX,innerWidth-200)+'px;top:'+e.clientY+'px;z-index:90;font:16px var(--f)';inp.focus()}
+  if(it.due){toast('Pick a new date, or clear it in the picker to remove it')}}
  else if(k=='cleardone'){snap();const n=c.items.filter(i=>i.d).length;c.items=c.items.filter(i=>!i.d);touch();render();toast(`Cleared ${n} done item${n==1?'':'s'}`)}});
 world.addEventListener('submit',e=>{e.preventDefault();if(!P.canWrite)return;const f=e.target,c=find(f.closest('.card').dataset.id);let u=f.u.value.trim();if(!u||!c)return;if(!/^[a-z]+:\/\//i.test(u))u='https://'+u;snap();c.url=u;if(!c.text)c.text=titleFrom(u);touch();render()});
 $('#crumbs').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)openBoard(b.dataset.go)});
@@ -439,10 +448,10 @@ const TN={note:'Note',heading:'Heading',todo:'Checklist',link:'Link',image:'Pict
 let results=[],rsel=0;
 function openSearch(){$('#search').hidden=false;const q=$('#sq');q.value='';doSearch();setTimeout(()=>q.focus(),0)}
 function doSearch(){const q=$('#sq').value.trim().toLowerCase();results=[];
- if(q){outer:for(const b of Object.values(S.boards)){for(const c of b.cards){const sub=c.type=='board'&&S.boards[c.board];const hay=[c.text,c.url,c.hex,sub&&sub.title,...(c.type=='todo'?c.items.map(i=>i.t):[])].filter(Boolean).join(' \n ');
+ if(q){outer:for(const b of Object.values(S.boards)){if(N.hooks.isLocked(b.id))continue;if(b.extra&&b.extra.voiceText&&b.extra.voiceText.toLowerCase().includes(q))results.push({b:b.id,c:null,label:b.extra.voiceText.slice(0,90),kind:'Board explanation',path:pathOf(b.id).map(x=>x.title||'Untitled').join(' › ')});for(const c of b.cards){const sub=c.type=='board'&&S.boards[c.board];const hay=[c.text,c.url,c.hex,sub&&sub.title,c.transcript,...(c.type=='todo'?c.items.map(i=>i.t):[])].filter(Boolean).join(' \n ');
   const at=hay.toLowerCase().indexOf(q);if(at<0)continue;const line=hay.slice(Math.max(0,at-30),at+70).replace(/\s+/g,' ').trim();results.push({b:b.id,c:c.id,label:line,kind:TN[c.type],path:pathOf(b.id).map(x=>x.title||'Untitled').join(' › ')});if(results.length>80)break outer}}}
  rsel=0;$('#sr').innerHTML=!q?'<div class="nores">Type to search notes, lists, links, captions and board names across every board.</div>':results.length?results.map((r,i)=>`<button class="res${i==0?' on':''}" data-i="${i}">${esc(r.label)}<small>${esc(r.kind)} · ${esc(r.path)}</small></button>`).join(''):'<div class="nores">Nothing matches that yet.</div>'}
-function goResult(i){const r=results[i];if(!r)return;closeOv();openBoard(r.b,()=>requestAnimationFrame(()=>focusCard(r.c)))}
+function goResult(i){const r=results[i];if(!r)return;closeOv();openBoard(r.b,()=>{if(r.c)requestAnimationFrame(()=>focusCard(r.c))})}
 $('#sq').addEventListener('input',doSearch);
 $('#sq').addEventListener('keydown',e=>{if(e.key=='Enter'){e.preventDefault();goResult(rsel)}else if(e.key=='ArrowDown'||e.key=='ArrowUp'){e.preventDefault();rsel=clamp(rsel+(e.key=='ArrowDown'?1:-1),0,Math.max(0,results.length-1));document.querySelectorAll('.res').forEach((x,i)=>x.classList.toggle('on',i==rsel));document.querySelector('.res.on')?.scrollIntoView({block:'nearest'})}});
 $('#sr').addEventListener('click',e=>{const b=e.target.closest('.res');if(b)goResult(+b.dataset.i)});
@@ -476,11 +485,14 @@ async function recordVoice(pt,col,onSave,title){if(!P.canWrite)return;
 // A .board file = "BRDS1" + 4-byte length + JSON (boards + media list) + the media files one after another.
 const MAGIC='BRDS1';
 function safeName(t){return (String(t||'board').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60)||'board')}
-async function exportBoard(rootId){const ids=[];collect(rootId,ids);const boards={};ids.forEach(id=>boards[id]=S.boards[id]);
- const mids=[...new Set(ids.flatMap(id=>[...S.boards[id].cards.filter(c=>c.media).map(c=>c.media),...(S.boards[id].voice?[S.boards[id].voice]:[])]))];status('Preparing file…');
+function boardMedia(b){const out=[];if(b.voice)out.push(b.voice);const w=b.extra&&b.extra.walk;if(w&&w.media)out.push(w.media);return out}
+async function exportBoard(rootId,how){const ids=[];collect(rootId,ids);const boards={};ids.forEach(id=>boards[id]=S.boards[id]);
+ const mids=[...new Set(ids.flatMap(id=>[...S.boards[id].cards.filter(c=>c.media).map(c=>c.media),...boardMedia(S.boards[id])]))];status('Preparing file…');
  const media=[],parts=[];for(const id of mids){const b=await Store.getMedia(id).catch(()=>null);if(b){media.push({id,size:b.size,type:b.type||''});parts.push(b)}}
  const json=new TextEncoder().encode(JSON.stringify({app:'boards',v:1,root:rootId,boards,media}));const len=new Uint8Array(4);new DataView(len.buffer).setUint32(0,json.length,true);
- const file=new Blob([MAGIC,len,json,...parts],{type:'application/octet-stream'});const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=safeName(S.boards[rootId].title)+'.board';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+ const file=new Blob([MAGIC,len,json,...parts],{type:'application/octet-stream'});const fname=safeName(S.boards[rootId].title)+'.board';
+ if(how=='share'){settled();return new File([file],fname,{type:'application/octet-stream'})}
+ const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=safeName(S.boards[rootId].title)+'.board';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
  settled();toast(`Downloaded “${a.download}” (${mb(file.size)})`)}
 async function importBoardFile(file){if(!P.canWrite)return;try{
  const head=new Uint8Array(await file.slice(0,9).arrayBuffer());if(new TextDecoder().decode(head.slice(0,5))!==MAGIC)throw 0;
@@ -489,7 +501,7 @@ async function importBoardFile(file){if(!P.canWrite)return;try{
  for(const m of (Array.isArray(o.media)?o.media:[])){const size=+m.size||0;const blob=file.slice(off,off+size,String(m.type||''));off+=size;mediaMap[m.id]=await Store.putMedia(blob)}
  const src={};for(const[k,b]of Object.entries(o.boards))if(okId(k)&&b&&Array.isArray(b.cards))src[k]=normalize({...b,id:k});
  snap();const seen=new Set();
- const clone=(id,parent)=>{const b=src[id];if(!b||seen.has(id))return null;seen.add(id);const nb=JSON.parse(JSON.stringify(b));nb.id='b'+uid();nb.parent=parent;if(nb.voice)nb.voice=mediaMap[nb.voice]||null;const map={};nb.cards.forEach(c=>map[c.id]=uid());
+ const clone=(id,parent)=>{const b=src[id];if(!b||seen.has(id))return null;seen.add(id);const nb=JSON.parse(JSON.stringify(b));nb.id='b'+uid();nb.parent=parent;if(nb.voice)nb.voice=mediaMap[nb.voice]||null;if(nb.extra&&nb.extra.walk&&nb.extra.walk.media)nb.extra.walk.media=mediaMap[nb.extra.walk.media]||nb.extra.walk.media;const map={};nb.cards.forEach(c=>map[c.id]=uid());
   nb.cards=nb.cards.map(c=>{const k={...c,id:map[c.id]};if(k.col)k.col=map[k.col]||null;if(k.type=='column')k.items=k.items.map(x=>map[x]).filter(Boolean);if(k.media)k.media=mediaMap[k.media]||k.media;if(k.type=='board')k.board=clone(c.board,nb.id)||'';return k});
   nb.links=nb.links.filter(l=>map[l.from]&&map[l.to]).map(l=>({id:uid(),from:map[l.from],to:map[l.to]}));S.boards[nb.id]=nb;return nb.id};
  const rootNew=clone(o.root,S.cur);const rb=S.boards[rootNew];if(o.root=='home'&&rb.title=='Home')rb.title='Imported boards';
@@ -501,7 +513,7 @@ $('#bShare').onclick=()=>{const cur=B();const m=modal(`<h2>Share a board</h2><p>
 $('#boardFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importBoardFile(f);e.target.value=''});
 $('#bStore').onclick=async()=>{const m=modal(`<h2>Storage on this device</h2><p>Checking…</p>`);let u={used:0,available:0,persisted:false},list=[];
  try{u=await Store.usage();list=await Store.listMedia()}catch(e){}
- const used=new Set();Object.values(S.boards).forEach(b=>{if(b.voice)used.add(b.voice);b.cards.forEach(c=>{if(c.media)used.add(c.media)})});const unused=list.filter(x=>!used.has(x.id)),ub=unused.reduce((n,x)=>n+x.size,0);
+ const used=new Set();Object.values(S.boards).forEach(b=>{boardMedia(b).forEach(m=>used.add(m));b.cards.forEach(c=>{if(c.media)used.add(c.media)})});try{(await N.hooks.historyMedia()).forEach(m=>used.add(m))}catch(e){}const unused=list.filter(x=>!used.has(x.id)),ub=unused.reduce((n,x)=>n+x.size,0);
  const pct=u.available?Math.min(100,u.used/u.available*100):0;
  m.innerHTML=`<h2>Storage on this device</h2><p>Your boards, pictures and videos are saved here on this device, not on a server, so the only limit is this device’s free space. Each browser and device keeps its own copy.</p><div class="meter"><i style="width:${pct.toFixed(1)}%"></i></div>
  <div class="kv"><span>Used</span><b>${esc(mb(u.used))}</b><span>Space this app may use</span><b>${u.available?esc(mb(u.available)):'Not reported'}</b><span>Protected from clean-up</span><b>${u.persisted?'Yes':'Not yet'}</b><span>Media not on any board</span><b>${unused.length} file${unused.length==1?'':'s'} · ${esc(mb(ub))}</b></div>
@@ -514,7 +526,9 @@ $('#zi').onclick=()=>zoomBy(1.2);$('#zo').onclick=()=>zoomBy(1/1.2);$('#zl').onc
 addEventListener('resize',()=>{placeCtx();linksSoon()});
 
 $('#homeMark').addEventListener('click',()=>openBoard('home'));
+/* ---------- add-on features live in js/features/*.js and use this ---------- */
+Object.assign(N,{$,esc,uid,clamp,okc,okId,S,P,Store,B,find,el,V,render,applyView,drawLinks,linksSoon,touch,snap,show,openBoard,modal,closeOv,confirmBox,toast,status,settled,worldPt,centerPt,wrect,recordVoice,newCard,addCard,fit,saveViewSoon,collect,normalize,pathOf,mb,ICON,TOOLS,DEFW,focusCard,refreshSel,exportBoard,importBoardFile,isEditing,flushNow,todayStr,dueLabel,boardMedia,mediaTag,canvas,world,requestRender,addMedia});
 /* ---------- start ---------- */
-load().then(()=>{$('#load').hidden=true;const h=location.hash.slice(1);show(S.boards[h]?h:'home')});
+load().then(()=>{$('#load').hidden=true;const h=location.hash.slice(1);show(S.boards[h]?h:'home');N.hooks.ready.forEach(f=>{try{f()}catch(e){console.error(e)}})});
 }
 
