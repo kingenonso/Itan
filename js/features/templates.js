@@ -9,8 +9,126 @@
   const note = (t, x, y, w = 280, color) => add('note', x, y, { text: t, w, ...(color ? { color } : {}) });
   const head = (t, x, y, w = 520) => add('heading', x, y, { text: t, w });
   const inDays = n => N.todayStr(n);
+  // A board card whose board is filled by fill(); nested boards work the same way
+  let parentId = null;
+  const sub = (title, color, x, y, fill) => {
+    const S = N.S, id = 'b' + N.uid();
+    S.boards[id] = N.normalize({ id, title, parent: parentId || S.cur, cards: [], links: [], created: Date.now() });
+    const outer = cards, outerParent = parentId; cards = []; parentId = id;
+    fill(); S.boards[id].cards = cards;
+    cards = outer; parentId = outerParent;
+    return add('board', x, y, { board: id, color, w: 190 });
+  };
+  const shot = (n, size, lens, move, what) => `${n} · ${size} · ${lens} · ${move}\n${what}`;
 
   const T = [
+    { id: 'film', name: 'Film production', build() {
+      head('Our film', 40, 30, 600);
+      note('Logline\n\nOne or two sentences: who wants what, what stands in the way, and what happens if they fail.', 40, 110, 320, '#8f5ae8');
+      const pre = sub('Pre-production', '#4b6bff', 400, 110, () => {
+        head('Pre-production', 40, 30);
+        list('Before the shoot', ['Lock the script', 'Break down the script', 'Storyboard key scenes', 'Make the shot list', 'Cast the actors', 'Scout and confirm locations', 'Get permission for every location', 'Book the crew', 'Plan the shoot days', 'Confirm the budget', 'Gear list and rentals', 'Release forms ready'], 40, 110, 320);
+        sub('Script and story', '#8f5ae8', 400, 110, () => {
+          head('Script and story', 40, 30);
+          note('Logline\n\n', 40, 110, 300); note('Synopsis\n\nBeginning:\nMiddle:\nEnd:', 360, 110, 320);
+          col('Characters', ['Name · age · what they want', 'Name · age · what they want'], 40, 300, 300);
+          col('Script drafts', ['Draft 1 · paste a link to the script or drop the PDF here'], 360, 300, 320);
+        });
+        sub('Storyboard', '#e0508f', 610, 110, () => {
+          head('Storyboard', 40, 30);
+          note('Drop a sketch or reference picture into each column under its shot. Record a voice note to explain the feel of a scene.', 40, 100, 520);
+          ['Scene 1', 'Scene 2', 'Scene 3'].forEach((t, i) => col(t, ['Shot 1 · what we see', 'Shot 2 · what we see'], 40 + i * 300, 190, 280));
+        });
+        sub('Shot list', '#2a9ec4', 820, 110, () => {
+          head('Shot list', 40, 30);
+          note('One card per shot: number · shot size · lens · movement, then what happens. Shot sizes: wide, medium, close-up, extreme close-up, over-the-shoulder, insert.', 40, 100, 600);
+          col('Scene 1 · INT. House · Day', [shot('1A', 'Wide', '17mm', 'Static', 'Establish the room'), shot('1B', 'Medium', '28mm', 'Slow push in', 'Lead enters'), shot('1C', 'Close-up', '50mm', 'Handheld', 'Reaction')], 40, 200, 300);
+          col('Scene 2 · EXT. Street · Night', [shot('2A', 'Wide', '20mm', 'Gimbal follow', 'Walking towards camera')], 360, 200, 300);
+          col('Pickups and extras', ['B-roll · hands, details, textures'], 680, 200, 300);
+        });
+        sub('Locations', '#36a86d', 400, 330, () => {
+          head('Locations', 40, 30);
+          col('Ideas', ['Location name · paste a map link'], 40, 110); col('Scouted', [], 320, 110); col('Confirmed', [], 600, 110);
+          note('For each location\n\nAddress:\nContact and phone:\nPermission or fee:\nPower sockets:\nNoise:\nBest light (time of day):\nParking and toilets:', 880, 110, 300, '#36a86d');
+        });
+        sub('Cast and crew', '#f39a1e', 610, 330, () => {
+          head('Cast and crew', 40, 30);
+          col('Cast', ['Role · actor · phone', 'Role · actor · phone'], 40, 110, 300);
+          col('Crew', ['Director', 'Director of photography', 'Gaffer', 'Sound', 'Makeup and wardrobe', 'Production assistant'], 360, 110, 300);
+          list('Paperwork', ['Actor release forms', 'Location agreements', 'Crew agreements and rates'], 680, 110, 300);
+        });
+        sub('Schedule', '#737a84', 820, 330, () => {
+          head('Shoot schedule', 40, 30);
+          note('Group scenes by location, not by story order, to save time. Put dates on the Production checklist so they show in Today.', 40, 100, 600);
+          ['Day 1', 'Day 2', 'Day 3'].forEach((d, i) => col(d, i === 0 ? ['Call 7:00 · Scene 1 · INT. House', 'Lunch 12:30', 'Scene 3 · INT. House'] : [], 40 + i * 300, 190, 280));
+        });
+        sub('Budget', '#36a86d', 400, 550, () => {
+          head('Budget', 40, 30);
+          ['Cast', 'Crew', 'Locations', 'Gear rental', 'Transport', 'Food on set', 'Props and wardrobe', 'Post-production', 'Contingency (10%)'].forEach((t, i) => note(t + '\n\nPlanned:\nSpent:', 40 + (i % 3) * 260, 110 + Math.floor(i / 3) * 170, 240));
+        });
+        sub('Gear', '#2a9ec4', 610, 550, () => {
+          head('Gear', 40, 30);
+          list('Camera', ['Camera body and batteries', 'Lenses', 'Memory cards, formatted', 'Monitor', 'Gimbal or tripod'], 40, 110, 280);
+          list('Sound', ['Recorder or mic', 'Lavalier mics', 'Headphones', 'Spare batteries'], 350, 110, 280);
+          list('Light and grip', ['Key light', 'Fill or bounce', 'Stands and sandbags', 'Extension cables'], 660, 110, 280);
+          list('Data', ['Hard drive 1', 'Hard drive 2 (backup)', 'Card reader', 'Laptop and charger'], 970, 110, 280);
+        });
+      });
+      const prod = sub('Production', '#ff5a3c', 610, 110, () => {
+        head('Production', 40, 30);
+        list('Every shoot day', ['Call sheet sent the night before', 'Batteries charged', 'Cards formatted', 'White balance and exposure checked', 'Slate every take', 'Record 30 seconds of room tone', 'Back up cards twice before formatting'], 40, 110, 320);
+        sub('Call sheets', '#ff5a3c', 400, 110, () => {
+          head('Call sheets', 40, 30);
+          note('Day 1 · date\n\nCrew call:\nCast call:\nLocation and map link:\nScenes:\nWeather:\nNearest hospital:\nProducer’s phone:', 40, 110, 320, '#ff5a3c');
+          note('Day 2 · date\n\nCrew call:\nCast call:\nLocation and map link:\nScenes:\nWeather:\nNearest hospital:\nProducer’s phone:', 380, 110, 320);
+        });
+        sub('Shot tracker', '#2a9ec4', 610, 110, () => {
+          head('Shot tracker', 40, 30);
+          note('Drag each shot along as you go. Copy shots from the Shot list board.', 40, 100, 520);
+          col('To shoot', ['1A', '1B', '1C'], 40, 190); col('Shot', [], 320, 190); col('Pickups', [], 600, 190);
+        });
+        sub('Continuity', '#e0508f', 400, 330, () => {
+          head('Continuity', 40, 30);
+          note('Take a photo at the end of every scene and drop it here, so wardrobe, props and hair match when you come back.', 40, 100, 560);
+          col('Scene 1', ['Wardrobe:', 'Props:', 'Hair and makeup:'], 40, 190, 280); col('Scene 2', [], 340, 190, 280);
+        });
+        sub('Footage log', '#737a84', 610, 330, () => {
+          head('Footage log', 40, 30);
+          list('Cards backed up', ['A001 · Day 1 · scenes 1–2 · drive 1 and 2'], 40, 110, 360);
+          note('Good takes\n\n1A take 3 · best\n1B take 2 · focus soft at the end', 430, 110, 320, '#36a86d');
+        });
+      });
+      const post = sub('Post-production', '#36a86d', 820, 110, () => {
+        head('Post-production', 40, 30);
+        list('After the shoot', ['Back up and organise footage', 'Sync sound', 'Assembly edit', 'Rough cut', 'Picture lock', 'Colour grade', 'Sound mix', 'Music licensed', 'Titles and credits', 'Subtitles', 'Export masters', 'Deliver'], 40, 110, 320);
+        sub('Edit', '#4b6bff', 400, 110, () => {
+          head('Edit', 40, 30);
+          col('Assembly', ['Every usable take, in script order'], 40, 110); col('Rough cut', [], 320, 110); col('Fine cut', [], 600, 110); col('Locked', [], 880, 110);
+        });
+        sub('Colour', '#e2c02a', 610, 110, () => {
+          head('Colour', 40, 30);
+          note('Pipeline\n\nLog footage → colour space transform → balance → look → output for Rec.709 (or your delivery format)', 40, 110, 360);
+          note('Look notes\n\nDrop reference stills and pick colours for the mood.', 420, 110, 300);
+          add('swatch', 40, 300, { hex: '#1d2a3a', text: 'Shadows', w: 140 }); add('swatch', 196, 300, { hex: '#c98a5b', text: 'Skin', w: 140 }); add('swatch', 352, 300, { hex: '#e9dcc4', text: 'Highlights', w: 140 });
+        });
+        sub('Sound and music', '#8f5ae8', 400, 330, () => {
+          head('Sound and music', 40, 30);
+          list('Sound', ['Clean up dialogue', 'Fill gaps with room tone', 'Sound effects', 'Music', 'Final mix and levels'], 40, 110, 300);
+          col('Music ideas', ['Track · artist · licence'], 370, 110, 300);
+        });
+        sub('Feedback', '#f39a1e', 610, 330, () => {
+          head('Feedback', 40, 30);
+          note('Write each note with the time in the film, for example 01:02:14 · trim the pause before the line.', 40, 100, 560);
+          col('New notes', [], 40, 190); col('Fixing', [], 320, 190); col('Done', [], 600, 190);
+        });
+        sub('Delivery', '#36a86d', 400, 550, () => {
+          head('Delivery', 40, 30);
+          list('Deliverables', ['Master file', 'Online version', 'Vertical cut 9:16 for social', 'Trailer', 'Poster and stills', 'Subtitle file', 'Archive copy of the project and footage'], 40, 110, 320);
+        });
+      });
+      list('Key dates', [{ t: 'Script locked', d: false, due: inDays(14) }, { t: 'First shoot day', d: false, due: inDays(30) }, { t: 'Picture lock', d: false, due: inDays(60) }, { t: 'Release', d: false, due: inDays(90) }], 40, 320, 320);
+      cards.push({ id: N.uid(), _link: [pre.id, prod.id] }, { id: N.uid(), _link: [prod.id, post.id] });
+    } },
     { id: 'event', name: 'Wedding or event', build() {
       head('Our event', 40, 30);
       col('To book', ['Venue', 'Caterer', 'Photographer', 'DJ / MC', 'Decorator'], 40, 110);
@@ -64,8 +182,9 @@
   ];
   function apply(t) {
     if (!N.P.canWrite) return;
-    cards = []; t.build(); const b = N.B(); N.snap();
-    b.cards.push(...cards); if (b.title === 'Untitled board' || !b.title) b.title = t.name;
+    N.snap(); cards = []; parentId = null; t.build(); const b = N.B();
+    const links = cards.filter(c => c._link); cards = cards.filter(c => !c._link);
+    b.cards.push(...cards); links.forEach(l => b.links.push({ id: N.uid(), from: l._link[0], to: l._link[1] })); if (b.title === 'Untitled board' || !b.title) b.title = t.name;
     N.touch(); N.S.entering = true; N.render(); requestAnimationFrame(() => N.fit(1));
   }
   const empty = N.$('#empty');
